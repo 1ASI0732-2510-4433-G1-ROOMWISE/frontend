@@ -122,7 +122,7 @@ export default {
         if (!token) {
           throw new Error('No authentication token found');
         }
-
+        //added to avoid 401 error
         const decodedToken = AuthService.getDecodedToken();
         if (!decodedToken) {
           throw new Error('Invalid token');
