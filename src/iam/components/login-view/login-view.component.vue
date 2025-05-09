@@ -1,6 +1,6 @@
 <script>
 import i18n from "../../../i18n.js";
-import {LoginService} from "../../service/login-service.js";
+import AuthService from "../../service/auth_service.js";
 
 export default {
   name: "login-view",
@@ -13,43 +13,40 @@ export default {
     return {
       email: "",
       password: "",
-      remember: true,
-      loginService: null
+      roleId: 1, // 1: Owner, 2: Admin, 3: Worker
+      loading: false,
+      error: null,
+      roles: [
+        { label: 'Owner', value: 1 },
+        { label: 'Admin', value: 2 },
+        { label: 'Worker', value: 3 }
+      ]
     }
   },
-  created() {
-    this.loginService = new LoginService();
-  },
   methods: {
-    checkEmail() {
-      return this.email.includes('@')
-    },
-    login() {
-      if (!this.checkEmail() || this.password.length < 5) {
-        this.$toast.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Verify your email or password',
-          position: 'center',
-          life: 3000
-        })
-      } else {
-        this.loginService.getAllUsers().then((users) => {
-          let user = users.data.find(user => user.email === this.email && user.password === this.password);
-          if (user) {
-            localStorage.setItem('token', user.id);
-          //   reload page
-            window.location.reload();
-          } else {
-            this.$toast.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: 'Verify your email or password',
-              position: 'center',
-              life: 3000
-            })
-          }
-        })
+    async login() {
+      this.error = null;
+
+      if (!this.email || !this.password) {
+        this.error = 'Please enter email and password';
+        return;
+      }
+
+      this.loading = true;
+
+      try {
+        const success = await AuthService.login(this.email, this.password, this.roleId);
+
+        if (success) {
+          this.$router.push('/panel');
+        } else {
+          this.error = 'Invalid credentials or role';
+        }
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Login failed. Please try again.';
+        console.error('Login error:', error);
+      } finally {
+        this.loading = false;
       }
     }
   }
@@ -59,41 +56,44 @@ export default {
 <template>
   <div class="mb-4 mt-2">
     <pv-float-label class="w-full">
-      <pv-input-text v-model="email" :label="i18n.global.t('login-view.login-panel.email')" type="email" class="w-12"/>
-      <label slot="label">
-        {{ i18n.global.t('login-view.login-panel.email') }}
-      </label>
+      <pv-input-text v-model="email"
+                     :label="i18n.global.t('login-view.login-panel.email')"
+                     type="email"
+                     class="w-12"
+                     required/>
+      <label>{{ i18n.global.t('login-view.login-panel.email') }}</label>
     </pv-float-label>
   </div>
 
-  <div>
+  <div class="mb-4">
     <pv-float-label class="w-full">
-      <pv-password v-model="password" :label="i18n.global.t('login-view.login-panel.password')" type="password"
-                   toggleMask :feedback="false" class="w-full"/>
-      <label slot="label">
-        {{ i18n.global.t('login-view.login-panel.password') }}
-      </label>
+      <pv-password v-model="password"
+                   :label="i18n.global.t('login-view.login-panel.password')"
+                   type="password"
+                   toggleMask
+                   class="w-full"
+                   required/>
+      <label>{{ i18n.global.t('login-view.login-panel.password') }}</label>
     </pv-float-label>
   </div>
 
-  <div class="mt-4">
-    <pv-checkbox v-model="remember" aria-label="Remember me" id="remember_me" binary/>
-    <label for="remember_me" class="ml-2">
-      {{ i18n.global.t('login-view.login-panel.remember') }}
-    </label>
+  <div class="mb-4">
+    <pv-dropdown v-model="roleId"
+                 :options="roles"
+                 optionLabel="label"
+                 optionValue="value"
+                 placeholder="Select role"
+                 class="w-full"/>
   </div>
 
-  <div class="mt-4 text-center align-content-center ">
-    <pv-button @click="login" class="w-10 border-round-3xl" :label="i18n.global.t('login-view.login-panel.login')"/>
+  <div v-if="error" class="p-3 mb-4 bg-red-100 text-red-700 rounded">
+    {{ error }}
   </div>
 
-  <div>
-    <p class="text-center">
-      <a href="#" class="text-blue-700 underline">
-        {{ i18n.global.t('login-view.login-panel.forgot') }}
-      </a>
-    </p>
+  <div class="mt-4 text-center">
+    <pv-button @click="login"
+               :label="i18n.global.t('login-view.login-panel.login')"
+               :loading="loading"
+               class="w-full"/>
   </div>
 </template>
-<style>
-</style>

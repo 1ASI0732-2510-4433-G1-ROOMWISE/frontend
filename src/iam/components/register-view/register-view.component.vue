@@ -1,6 +1,6 @@
 <script>
-
 import i18n from "../../../i18n.js";
+import AuthService from "../../service/auth_service.js";
 
 export default {
   name: "register-view",
@@ -11,81 +11,205 @@ export default {
   },
   data() {
     return {
-      company_name: "",
-      ruc: "",
-      email: "",
-      name_and_lastname: "",
-      password: "",
-      terms: true,
+      formData: {
+        username: "",
+        name: "",
+        surname: "",
+        email: "",
+        phone: "",
+        password: "",
+        confirmPassword: "",
+        state: "ACTIVE",
+        role: "owner" // Nuevo campo para seleccionar el tipo de usuario
+      },
+      terms: false,
+      loading: false
+    }
+  },
+  methods: {
+    validateForm() {
+      if (!this.terms) {
+        this.showErrorToast('You must accept the terms and conditions');
+        return false;
+      }
+      if (this.formData.password !== this.formData.confirmPassword) {
+        this.showErrorToast('Passwords do not match');
+        return false;
+      }
+      if (this.formData.password.length < 8) {
+        this.showErrorToast('Password must be at least 8 characters');
+        return false;
+      }
+      return true;
+    },
+    async register() {
+      if (!this.validateForm()) return;
+
+      this.loading = true;
+
+      try {
+        const { confirmPassword, role, ...registrationData } = this.formData;
+        registrationData.phone = parseInt(registrationData.phone) || 0;
+
+        // Selección del endpoint según el rol
+        const signupMethod = role === 'owner'
+            ? AuthService.signupOwner
+            : AuthService.signupWorker;
+
+        const success = await signupMethod(registrationData);
+
+        if (success) {
+          this.$toast.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Registration successful! Please login.',
+            life: 3000
+          });
+          this.$emit('registration-success');
+        } else {
+          this.showErrorToast('Registration failed');
+        }
+      } catch (error) {
+        this.showErrorToast('Registration error. Please try again.');
+        console.error('Registration error:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    showErrorToast(message) {
+      this.$toast.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: message,
+        position: 'center',
+        life: 3000
+      });
     }
   }
 }
 </script>
 
 <template>
+  <div class="mb-4">
+    <div class="flex align-items-center">
+      <pv-radio-button v-model="formData.role" inputId="role-owner" value="owner" />
+      <label for="role-owner" class="ml-2">Owner</label>
+
+      <pv-radio-button v-model="formData.role" inputId="role-worker" value="worker" class="ml-4" />
+      <label for="role-worker" class="ml-2">Worker</label>
+    </div>
+  </div>
+
   <div class="mb-4 mt-2">
     <pv-float-label class="w-full">
-      <pv-input-text v-model="company_name" :label="i18n.global.t('login-view.signup-panel.company-name')" type="text"
-                     class="w-12"/>
+      <pv-input-text v-model="formData.username"
+                     label="Username"
+                     type="text"
+                     class="w-12"
+                     required/>
       <label slot="label">
-        {{ i18n.global.t('login-view.signup-panel.company-name') }}
+        Username
       </label>
     </pv-float-label>
   </div>
 
   <div class="mb-4 mt-2">
     <pv-float-label class="w-full">
-      <pv-input-text v-model="ruc" label="ruc" type="text" class="w-12"/>
+      <pv-input-text v-model="formData.email"
+                     label="Email"
+                     type="email"
+                     class="w-12"
+                     required/>
       <label slot="label">
-        RUC
+        Email
       </label>
     </pv-float-label>
   </div>
 
   <div class="mb-4 mt-2">
     <pv-float-label class="w-full">
-      <pv-input-text v-model="email" :label="i18n.global.t('login-view.signup-panel.email')" type="mail" class="w-12"/>
+      <pv-input-text v-model="formData.name"
+                     label="Name"
+                     type="text"
+                     class="w-12"
+                     required/>
       <label slot="label">
-        {{ i18n.global.t('login-view.signup-panel.email') }}
+        Name
       </label>
     </pv-float-label>
   </div>
 
   <div class="mb-4 mt-2">
     <pv-float-label class="w-full">
-      <pv-input-text v-model="name_and_lastname" :label="i18n.global.t('login-view.signup-panel.name-lastname')"
-                     type="mail" class="w-12"/>
+      <pv-input-text v-model="formData.surname"
+                     label="Surname"
+                     type="text"
+                     class="w-12"
+                     required/>
       <label slot="label">
-        {{ i18n.global.t('login-view.signup-panel.name-lastname') }}
+        Surname
       </label>
     </pv-float-label>
   </div>
 
-  <div>
+  <div class="mb-4 mt-2">
     <pv-float-label class="w-full">
-      <pv-password v-model="password" :label="i18n.global.t('login-view.signup-panel.password')" type="password"
-                   toggleMask :feedback="false" class="w-full"/>
+      <pv-input-text v-model="formData.phone"
+                     label="Phone"
+                     type="tel"
+                     class="w-12"
+                     required/>
       <label slot="label">
-        {{ i18n.global.t('login-view.signup-panel.password') }}
+        Phone
+      </label>
+    </pv-float-label>
+  </div>
+
+  <div class="mb-4">
+    <pv-float-label class="w-full">
+      <pv-password v-model="formData.password"
+                   label="Password"
+                   type="password"
+                   toggleMask
+                   :feedback="true"
+                   class="w-full"
+                   required/>
+      <label slot="label">
+        Password
+      </label>
+    </pv-float-label>
+  </div>
+
+  <div class="mb-4">
+    <pv-float-label class="w-full">
+      <pv-password v-model="formData.confirmPassword"
+                   label="Confirm Password"
+                   type="password"
+                   toggleMask
+                   :feedback="false"
+                   class="w-full"
+                   required/>
+      <label slot="label">
+        Confirm Password
       </label>
     </pv-float-label>
   </div>
 
   <div class="mt-4">
-    <pv-checkbox v-model="terms" aria-label="Terms and conditions" id="terms-and-conditions" binary/>
+    <pv-checkbox v-model="terms"
+                 aria-label="Terms and conditions"
+                 id="terms-and-conditions"
+                 binary
+                 required/>
     <label for="terms-and-conditions" class="ml-2">
-      {{ i18n.global.t('login-view.signup-panel.terms.text') }}
-      <a class="text-blue-600">
-        {{ i18n.global.t('login-view.signup-panel.terms.link') }}
-      </a>
+      I agree to the Terms and Conditions
     </label>
   </div>
 
   <div class="mt-4 text-center align-content-center">
-    <pv-button class="w-10 border-round-3xl" :label="i18n.global.t('login-view.signup-panel.signup')"/>
+    <pv-button @click="register"
+               class="w-10 border-round-3xl"
+               label="Sign Up"
+               :loading="loading"/>
   </div>
 </template>
-
-<style>
-
-</style>

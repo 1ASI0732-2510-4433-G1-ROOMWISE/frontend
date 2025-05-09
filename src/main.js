@@ -43,7 +43,9 @@ import SelectButton from "primevue/selectbutton";
 import CountryFlagEsm from "vue-country-flag-next";
 import Password from "primevue/password";
 import Calendar from "primevue/calendar";
+import axios from 'axios';
 
+axios.defaults.baseURL = 'https://localhost:44390';
 // PrimeIcons
 import 'primeicons/primeicons.css';
 

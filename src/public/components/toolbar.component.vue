@@ -1,66 +1,114 @@
 <script>
 import LanguageSwitcher from "./language-switcher.component.vue";
-import {LoginService} from "../../iam/service/login-service.js";
+import AuthService from "../../iam/service/auth_service.js";
 import router from "../../router/index.js";
 
 export default {
   name: "toolbar-component",
-  components: {LanguageSwitcher},
+  components: { LanguageSwitcher },
   data() {
     return {
-      loginService: null,
       items: [
-        {label: 'Home', to: '/home'},
+        { label: 'Home', to: '/home' },
       ],
       user: null,
+      loading: false,
+      userRoles: {
+        OWNER: 1,
+        ADMIN: 2,
+        WORKER: 3
+      }
     }
   },
   created() {
-    this.loginService = new LoginService();
-    // if (this.is_logged) {
-    //   this.loginService.getUser(this.getUser.id).then(response => {
-    //     this.user = this.loginService.getUserFromResponse(response.data);
-    //   });
-    // }
+    this.checkAuthentication();
   },
   computed: {
-    is_logged() {
-      return localStorage.getItem('token') !== null;
+    isLogged() {
+      return AuthService.isAuthenticated();
     },
-    getUser() {
-      // return localStorage.getItem('token');
-      let user = this.loginService.getLocalUser();
-      console.log(user)
-      return this.loginService.getLocalUserFromResponse(user.data);
-    },
+    userRole() {
+      // Obtener el rol del usuario desde el token almacenado
+      const token = AuthService.getToken();
+      if (!token) return null;
+
+      // Decodificar el token para obtener el rol (esto depende de cómo esté estructurado tu JWT)
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.roleId || payload.rolesId;
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        return null;
+      }
+    }
   },
   methods: {
-    logout() {
-      this.loginService.logout();
-      this.$router.push('/login');
+    async checkAuthentication() {
+      if (this.isLogged) {
+        this.loading = true;
+        try {
+          // Aquí puedes agregar lógica para obtener datos adicionales del usuario
+          // si tu API lo permite
+          // this.user = await AuthService.getCurrentUser();
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        } finally {
+          this.loading = false;
+        }
+      }
+    },
+    async logout() {
+      this.loading = true;
+      try {
+        await AuthService.logout();
+        this.$router.push('/login');
+        this.$toast.add({
+          severity: 'success',
+          summary: 'Sesión cerrada',
+          detail: 'Has cerrado sesión correctamente',
+          life: 3000
+        });
+      } catch (error) {
+        this.$toast.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Ocurrió un error al cerrar sesión',
+          life: 3000
+        });
+        console.error('Logout error:', error);
+      } finally {
+        this.loading = false;
+      }
     },
     sendToProfile() {
-      router.push(
-          {name: 'profile', params: {id: 1}}
-      );
+      router.push('/profile');
     },
     sendToCompany() {
-      router.push(
-          {name: 'company', params: {id: 1}}
-      );
+      router.push('/company');
     },
     sendToRooms() {
-      router.push(
-          {name: 'rooms', params: {id: 1}}
-      );
+      router.push('/rooms');
     },
     sendToSupply() {
-      router.push(
-          {name: 'supply', params: {id: 1}}
-      );
+      if (this.hasRole([this.userRoles.OWNER, this.userRoles.ADMIN])) {
+        router.push('/supply');
+      } else {
+        this.showAccessDenied();
+      }
     },
-    getUser() {
-
+    hasRole(requiredRoles) {
+      if (!Array.isArray(requiredRoles)) {
+        requiredRoles = [requiredRoles];
+      }
+      return requiredRoles.includes(parseInt(this.userRole));
+    },
+    showAccessDenied() {
+      this.$toast.add({
+        severity: 'error',
+        summary: 'Acceso denegado',
+        detail: 'No tienes permisos para acceder a esta sección',
+        life: 3000
+      });
     }
   }
 }
@@ -69,39 +117,66 @@ export default {
 <template>
   <pv-toolbar class="bg-primary pt-1 pb-1" style="border-radius: 0;">
     <template #start>
-      <router-link v-if="is_logged" key="/" v-slot="{navigate, href}" to="/" class="ml-2">
+      <router-link v-if="isLogged" to="/" custom v-slot="{ navigate, href }">
         <pv-button :href="href" class="p-button-text text-white" @click="navigate">
-          <h2> Sweet Manager</h2>
+          <h2>Sweet Manager</h2>
         </pv-button>
       </router-link>
-      <router-link v-if="is_logged" key="panel" v-slot="{navigate, href}" to="/panel" class="ml-2">
-        <pv-button :href="href" class="p-button-text text-white" @click="navigate">
+
+      <router-link v-if="isLogged" to="/panel" custom v-slot="{ navigate, href }">
+        <pv-button :href="href" class="p-button-text text-white ml-2" @click="navigate">
           {{ $t('control-panel') }}
         </pv-button>
       </router-link>
     </template>
 
     <template #center>
-      <language-switcher/>
+      <language-switcher />
     </template>
 
     <template #end>
-      <div class="flex-column" v-if="is_logged">
-
-        <pv-button class="p-button-text text-white" @click="sendToRooms()">
-          Rooms
+      <div v-if="isLogged" class="flex align-items-center gap-2">
+        <pv-button
+            v-if="hasRole([userRoles.OWNER, userRoles.ADMIN])"
+            class="p-button-text text-white"
+            @click="sendToRooms"
+            :loading="loading"
+        >
+          {{ $t('rooms') }}
         </pv-button>
 
-        <pv-button class="p-button-text text-white" @click="sendToSupply()">
-          Supply
+        <pv-button
+            v-if="hasRole([userRoles.OWNER, userRoles.ADMIN])"
+            class="p-button-text text-white"
+            @click="sendToSupply"
+            :loading="loading"
+        >
+          {{ $t('supply') }}
         </pv-button>
 
-        <pv-button class="p-button-text text-white" @click="sendToCompany()">
-          My Company
+        <pv-button
+            v-if="hasRole(userRoles.OWNER)"
+            class="p-button-text text-white"
+            @click="sendToCompany"
+            :loading="loading"
+        >
+          {{ $t('my-company') }}
         </pv-button>
 
-        <pv-button class="p-button-text text-white" @click="sendToProfile()">
-          My Profile
+        <pv-button
+            class="p-button-text text-white"
+            @click="sendToProfile"
+            :loading="loading"
+        >
+          {{ $t('my-profile') }}
+        </pv-button>
+
+        <pv-button
+            class="p-button-text text-white"
+            @click="logout"
+            :loading="loading"
+        >
+          {{ $t('logout') }}
         </pv-button>
       </div>
     </template>
@@ -109,5 +184,11 @@ export default {
 </template>
 
 <style scoped>
+.p-button.p-button-loading {
+  opacity: 0.8;
+}
 
+.gap-2 {
+  gap: 0.5rem;
+}
 </style>

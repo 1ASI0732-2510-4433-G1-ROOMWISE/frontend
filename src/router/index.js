@@ -1,47 +1,84 @@
-import {createRouter, createWebHistory} from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 import AccessContentComponent from "../iam/components/access-view/access-content.component.vue";
-import {LoginService} from "../iam/service/login-service.js";
+import RegisterView from "../iam/components/register-view/register-view.component.vue"; // Importa tu componente de registro
+import AuthService from "../iam/service/auth_service.js";
 import ControlPanelPageComponent from "../public/pages/control-panel-page.component.vue";
-import ProfileViewComponent from "../profiles/components/profile-view/profile-view.component.vue";
-import CompanyPage from "../profiles/pages/company-page.vue";
-import ReportsViewComponent from "../analytics/components/reports-view/reports-view.component.vue";
-import RoomManagementComponent from "../monitoring/room-managament/pages/room-management.component.vue";
-import NotificationsContentComponent from "../interaction/components/notifications-content.component.vue";
 import SuppliesContentComponent from "../supply/components/supplies-content.component.vue";
-
-const loginService = new LoginService();
+import ProfilePage from "../profiles/views/ProfilePage.vue";
 
 const router = createRouter({
     history: createWebHistory(),
     routes: [
-        {path: '/', component: AccessContentComponent,},
-        {path: '/panel', component: ControlPanelPageComponent, meta: {requiresAuth: true}, name: 'panel'},
-        {path: '/profile/:id', component: ProfileViewComponent, meta: {requiresAuth: true}, name: 'profile'},
-        {path: '/company', component: CompanyPage, meta: {requiresAuth: true}, name: 'company'},
-        {path: '/charts', component: ReportsViewComponent, meta: {requiresAuth: true}, name: 'charts'},
-        {path: '/rooms', component: RoomManagementComponent, meta: {requiresAuth: true}, name: 'rooms'},
-        {path: '/notifications', component: NotificationsContentComponent, meta: {requiresAuth: true}, name: 'notifications'},
-        {path: '/supply', component: SuppliesContentComponent, meta: {requiresAuth: true}, name: 'supply'},
+        {
+            path: '/',
+            component: AccessContentComponent,
+            meta: {
+                guestOnly: true,
+                defaultTab: 'login'
+            }
+        },
+        {
+            path: '/register',
+            component: AccessContentComponent,
+            meta: {
+                guestOnly: true,
+                defaultTab: 'register'
+            }
+        },
+        {
+            path: '/panel',
+            component: ControlPanelPageComponent,
+            meta: { requiresAuth: true },
+            name: 'panel'
+        },
+        {
+            path: '/supply',
+            component: SuppliesContentComponent,
+            meta: {
+                requiresAuth: true,
+                requiredRoles: [1, 2] // 1: Owner, 2: Admin
+            },
+            name: 'supply'
+        },
+        {
+            path: '/profile',
+            name: 'Profile',
+            component: ProfilePage,
+            meta: {
+                requiresAuth: true
+            }
+        },
+
+        // Ruta para manejar accesos no autorizados
+
     ]
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+    // Redirigir usuarios autenticados que intentan acceder a páginas de invitado
+    if (to.meta.guestOnly && AuthService.isAuthenticated()) {
+        next('/panel');
+        return;
+    }
+
+    // Verificar autenticación para rutas protegidas
     if (to.meta.requiresAuth) {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            next({path: '/'});
+        if (!AuthService.isAuthenticated()) {
+            next({ path: '/', query: { redirect: to.fullPath } });
             return;
         }
-        loginService.getUser(token).then(response => {
-            if (response.status === 200) {
-                next();
-            } else {
-                next({path: '/'});
+
+        // Verificar roles si es necesario
+        if (to.meta.requiredRoles) {
+            const userRole = AuthService.getCurrentUserRole();
+            if (!to.meta.requiredRoles.includes(parseInt(userRole))) {
+                next('/unauthorized');
+                return;
             }
-        })
-    } else {
-        next(); // make sure to always call next()!
+        }
     }
-})
+
+    next();
+});
 
 export default router;
