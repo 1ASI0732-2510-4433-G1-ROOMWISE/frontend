@@ -104,11 +104,7 @@ export default {
         </pv-button>
       </router-link>
 
-      <router-link v-if="isLogged" to="/panel" custom v-slot="{ navigate, href }">
-        <pv-button :href="href" class="p-button-text text-white ml-2" @click="navigate">
-          {{ $t('control-panel') }}
-        </pv-button>
-      </router-link>
+
     </template>
 
     <template #center>
