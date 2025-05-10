@@ -23,16 +23,21 @@ export default {
   created() {
     this.checkAuthentication();
   },
+  mounted() {
+    // Add this to ensure PrimeVue components are properly loaded
+    console.log('Toolbar component mounted');
+  },
   computed: {
     isLogged() {
-      return AuthService.isAuthenticated();
+      // For debugging - log the authentication status
+      const authStatus = AuthService.isAuthenticated();
+      console.log('Authentication status:', authStatus);
+      return authStatus;
     },
     userRole() {
-      // Obtener el rol del usuario desde el token almacenado
       const token = AuthService.getToken();
       if (!token) return null;
 
-      // Decodificar el token para obtener el rol (esto depende de cómo esté estructurado tu JWT)
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         return payload.roleId || payload.rolesId;
@@ -47,8 +52,6 @@ export default {
       if (this.isLogged) {
         this.loading = true;
         try {
-          // Aquí puedes agregar lógica para obtener datos adicionales del usuario
-          // si tu API lo permite
           // this.user = await AuthService.getCurrentUser();
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -57,29 +60,7 @@ export default {
         }
       }
     },
-    async logout() {
-      this.loading = true;
-      try {
-        await AuthService.logout();
-        this.$router.push('/login');
-        this.$toast.add({
-          severity: 'success',
-          summary: 'Sesión cerrada',
-          detail: 'Has cerrado sesión correctamente',
-          life: 3000
-        });
-      } catch (error) {
-        this.$toast.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Ocurrió un error al cerrar sesión',
-          life: 3000
-        });
-        console.error('Logout error:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
+
     sendToProfile() {
       router.push('/profile');
     },
@@ -163,21 +144,16 @@ export default {
           {{ $t('my-company') }}
         </pv-button>
 
+        <!-- Profile icon button - FIXED -->
         <pv-button
-            class="p-button-text text-white"
+            class="p-button-text text-white profile-btn"
             @click="sendToProfile"
             :loading="loading"
+            v-tooltip="$t('profile')"
         >
-          {{ $t('my-profile') }}
+          <i class="pi pi-user text-xl"></i>
         </pv-button>
 
-        <pv-button
-            class="p-button-text text-white"
-            @click="logout"
-            :loading="loading"
-        >
-          {{ $t('logout') }}
-        </pv-button>
       </div>
     </template>
   </pv-toolbar>
@@ -190,5 +166,16 @@ export default {
 
 .gap-2 {
   gap: 0.5rem;
+}
+
+/* Add specific styling for the profile button to ensure visibility */
+.profile-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-btn .pi {
+  font-size: 1.25rem;
 }
 </style>
