@@ -12,15 +12,16 @@ export default {
   data() {
     return {
       formData: {
+        id: "", // Add ID field for DNI/identification
         username: "",
         name: "",
         surname: "",
         email: "",
         phone: "",
         password: "",
-        confirmPassword: "",
+        confirmPassword: "", // Added this field as it was missing in data but used in template
         state: "ACTIVE",
-        role: "owner" // Nuevo campo para seleccionar el tipo de usuario
+        role: "owner" // Field to select user type
       },
       terms: false,
       loading: false
@@ -28,35 +29,66 @@ export default {
   },
   methods: {
     validateForm() {
+      // Check if ID is provided
+      if (!this.formData.id) {
+        this.showErrorToast('Identification number is required');
+        return false;
+      }
+
       if (!this.terms) {
         this.showErrorToast('You must accept the terms and conditions');
         return false;
       }
+
       if (this.formData.password !== this.formData.confirmPassword) {
         this.showErrorToast('Passwords do not match');
         return false;
       }
+
       if (this.formData.password.length < 8) {
         this.showErrorToast('Password must be at least 8 characters');
         return false;
       }
+
       return true;
     },
+
     async register() {
       if (!this.validateForm()) return;
 
       this.loading = true;
 
       try {
-        const { confirmPassword, role, ...registrationData } = this.formData;
-        registrationData.phone = parseInt(registrationData.phone) || 0;
+        // Convert phone to integer
+        const phone = parseInt(this.formData.phone) || 0;
 
-        // Selección del endpoint según el rol
-        const signupMethod = role === 'owner'
-            ? AuthService.signupOwner
-            : AuthService.signupWorker;
+        // Convert ID to integer if it's a number
+        const id = parseInt(this.formData.id) || this.formData.id;
 
-        const success = await signupMethod(registrationData);
+        let success = false;
+
+        // Use the correct method for each role and pass individual parameters
+        if (this.formData.role === 'owner') {
+          success = await AuthService.signupOwner(
+              id,
+              this.formData.username,
+              this.formData.name,
+              this.formData.surname,
+              this.formData.email,
+              phone,
+              this.formData.password
+          );
+        } else if (this.formData.role === 'worker') {
+          success = await AuthService.signupWorker(
+              id,
+              this.formData.username,
+              this.formData.name,
+              this.formData.surname,
+              this.formData.email,
+              phone,
+              this.formData.password
+          );
+        }
 
         if (success) {
           this.$toast.add({
@@ -66,16 +98,18 @@ export default {
             life: 3000
           });
           this.$emit('registration-success');
+          this.$router.push('/'); // Redirect to login page after successful registration
         } else {
           this.showErrorToast('Registration failed');
         }
       } catch (error) {
-        this.showErrorToast('Registration error. Please try again.');
+        this.showErrorToast(`Registration error: ${error.response?.data?.message || error.message}`);
         console.error('Registration error:', error);
       } finally {
         this.loading = false;
       }
     },
+
     showErrorToast(message) {
       this.$toast.add({
         severity: 'error',
@@ -96,8 +130,22 @@ export default {
       <label for="role-owner" class="ml-2">Owner</label>
 
       <pv-radio-button v-model="formData.role" inputId="role-worker" value="worker" class="ml-4" />
-      <label for="role-worker" class="ml-2">Worker</label>
+      <label for="role-worker" class="ml-2"></label>
     </div>
+  </div>
+
+  <!-- Added ID/DNI field -->
+  <div class="mb-4 mt-2">
+    <pv-float-label class="w-full">
+      <pv-input-text v-model="formData.id"
+                     label="Identification Number (DNI)"
+                     type="text"
+                     class="w-12"
+                     required/>
+      <label slot="label">
+        Identification Number (DNI)
+      </label>
+    </pv-float-label>
   </div>
 
   <div class="mb-4 mt-2">
