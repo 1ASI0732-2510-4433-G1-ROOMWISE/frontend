@@ -1,218 +1,127 @@
+<!-- src/profiles/views/BasicProfile.vue -->
 <template>
   <div class="profile-page">
-    <BaseLayout :role="userRole">
-      <div class="profile-container">
-        <!-- Contenido del perfil según el rol -->
-        <div v-if="loading" class="loading">
-          <p>Loading profile...</p>
+    <div class="profile-container">
+      <div class="profile-header">
+        <div class="avatar">
+          <i class="fas fa-user-circle"></i>
         </div>
-
-        <div v-else-if="error" class="error">
-          <p>{{ error }}</p>
-        </div>
-
-        <div v-else>
-          <!-- Vista para OWNER -->
-          <div v-if="userRole === 'ROLE_OWNER'" class="owner-profile">
-            <div class="profile-header">
-              <div class="avatar">
-                <i class="fas fa-user-circle"></i>
-              </div>
-              <div class="user-info">
-                <h2>MAURI WIWI</h2>
-                <p>mau@gmail.com</p>
-              </div>
-            </div>
-
-            <div class="profile-details">
-              <ProfileField label="Business Name" value="Sweet Manager Inc." />
-              <ProfileField label="Location" value="123 Sweet St, Candyland" />
-              <ProfileField label="Contact Number" value="(123) 456-7890" />
-              <ProfileField label="Total Employees" value="50" />
-              <ProfileField label="Supervision Areas" value="All Areas" />
-              <PasswordField />
-            </div>
+        <div class="user-info">
+          <div class="name-with-button">
+            <h2>{{ userInfo.name }}</h2>
+            <button class="my-hotel-button" @click="goToMyHotel">
+              Mi hotel
+            </button>
           </div>
-
-          <!-- Vista para ADMIN o WORKER -->
-          <div v-else class="user-profile">
-            <div class="profile-header">
-              <div class="avatar">
-                <i class="fas fa-user-circle"></i>
-              </div>
-              <div class="user-info">
-                <h2>{{ userInfo.name || 'N/A' }}</h2>
-                <p>{{ userInfo.email || 'N/A' }}</p>
-              </div>
-            </div>
-
-            <div class="profile-details">
-              <EditableField
-                  label="Name"
-                  :value="userInfo.name"
-                  action="Change name"
-                  @edit="handleFieldEdit('name')"
-              />
-              <EditableField
-                  label="Username"
-                  :value="userInfo.username"
-                  action="Change username"
-                  @edit="handleFieldEdit('username')"
-              />
-              <EditableField
-                  label="Email"
-                  :value="userInfo.email"
-                  action="Change email"
-                  @edit="handleFieldEdit('email')"
-              />
-              <EditableField
-                  label="Phone"
-                  :value="userInfo.phone"
-                  action="Change phone"
-                  @edit="handleFieldEdit('phone')"
-              />
-
-              <ProfileField
-                  v-if="userRole === 'ROLE_WORKER'"
-                  label="Assigned Area"
-                  value="SECURITY STAFF"
-              />
-
-              <PasswordField @change-password="handleChangePassword" />
-            </div>
-          </div>
+          <p>{{ userInfo.email }}</p>
         </div>
       </div>
-    </BaseLayout>
+
+      <div class="profile-details">
+        <div class="profile-field">
+          <div class="field-label">Nombre</div>
+          <div class="field-value">{{ userInfo.name }}</div>
+        </div>
+
+        <div class="profile-field">
+          <div class="field-label">Usuario</div>
+          <div class="field-value">{{ userInfo.username }}</div>
+        </div>
+
+        <div class="profile-field">
+          <div class="field-label">Email</div>
+          <div class="field-value">{{ userInfo.email }}</div>
+        </div>
+
+        <div class="profile-field">
+          <div class="field-label">Teléfono</div>
+          <div class="field-value">{{ userInfo.phone }}</div>
+        </div>
+
+        <div class="profile-field">
+          <div class="field-label">Posición</div>
+          <div class="field-value">{{ userInfo.position }}</div>
+        </div>
+
+        <div class="profile-field">
+          <div class="field-label">Ubicación</div>
+          <div class="field-value">{{ userInfo.location }}</div>
+        </div>
+
+
+
+        <div class="password-field">
+          <div class="field-content">
+            <div class="field-label">Contraseña</div>
+            <div class="field-value">••••••••</div>
+          </div>
+        </div>
+
+        <!-- Botón para crear hotel -->
+        <div class="create-hotel-button-wrapper">
+          <button class="create-hotel-button" @click="goToCreateHotel">
+            Crear hotel
+          </button>
+        </div>
+      </div>
+
+      <div class="logout-button-wrapper">
+        <button class="logout-button" @click="logout">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from 'axios';
-import AuthService from '../../iam/service/auth_service.js';
-import ProfileField from '../../profiles/views/ProfileField.vue';
-import EditableField from '../../profiles/views/EditableField.vue';
-import PasswordField from '../../profiles/views/PassordField.vue';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44390/api/v1';
+import AuthService from "../../iam/service/auth_service.js";
 
 export default {
-  name: 'ProfilePage',
-  components: {
-    ProfileField,
-    EditableField,
-    PasswordField
-  },
-  setup() {
-    const router = useRouter();
-    const userInfo = ref({});
-    const userRole = ref('');
-    const loading = ref(true);
-    const error = ref(null);
-    const showPasswordDialog = ref(false);
-
-    const fetchUserInfo = async () => {
-      try {
-        loading.value = true;
-        error.value = null;
-
-        const token = await AuthService.getToken();
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-        //added to avoid 401 error
-        const decodedToken = AuthService.getDecodedToken();
-        if (!decodedToken) {
-          throw new Error('Invalid token');
-        }
-
-        userRole.value = decodedToken['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-        const userId = decodedToken['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'];
-        const hotelId = decodedToken['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/locality'];
-
-        console.log('User role:', userRole.value);
-        console.log('User ID:', userId);
-        console.log('Hotel ID:', hotelId);
-
-        // Manejar el caso OWNER directamente
-        if (userRole.value === 'ROLE_OWNER') {
-          userInfo.value = {
-            role: userRole.value,
-            name: 'MAURI WIWI',
-            username: 'mauri_wiwi_777',
-            email: 'mau@gmail.com',
-            phone: '941691025'
-          };
-          loading.value = false;
-          return;
-        }
-
-        // Para ADMIN y WORKER, obtener datos del servidor
-        const endpoint = userRole.value === 'ROLE_ADMIN'
-            ? '/api/v1/user/get-all-admins'
-            : '/api/v1/user/get-all-workers';
-
-        const response = await axios.get(`${API_BASE_URL}${endpoint}?hotelId=${hotelId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.status === 200) {
-          const users = response.data;
-          const currentUser = users.find(user => user.id.toString() === userId.toString());
-
-          if (currentUser) {
-            userInfo.value = {
-              role: userRole.value,
-              name: currentUser.name || 'N/A',
-              username: currentUser.username || 'N/A',
-              email: currentUser.email || 'N/A',
-              phone: currentUser.phone || 'N/A'
-            };
-          } else {
-            throw new Error('User not found in the list');
-          }
-        } else {
-          throw new Error(`Failed to load user info. Status: ${response.status}`);
-        }
-      } catch (err) {
-        console.error('Error fetching user info:', err);
-        error.value = err.message || 'Failed to load profile information';
-
-        // Redirigir a login si el token es inválido
-        if (err.message.includes('token') || err.message.includes('authentication')) {
-          router.push('/login');
-        }
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const handleFieldEdit = (field) => {
-      console.log(`Edit ${field} requested`);
-      // Implementar lógica de edición aquí
-      // Puedes mostrar un modal/dialog para editar el campo
-    };
-
-    const handleChangePassword = () => {
-      console.log('Change password requested');
-      // Implementar lógica de cambio de contraseña aquí
-    };
-
-    onMounted(() => {
-      fetchUserInfo();
-    });
-
+  name: 'BasicProfile',
+  data() {
     return {
-      userInfo,
-      userRole,
-      loading,
-      error,
-      showPasswordDialog,
-      handleFieldEdit,
-      handleChangePassword
+      userInfo: {
+        name: 'Omar Morales',
+        username: 'omar',
+        email: 'omarmoralesmm4533@gmail.com',
+        phone: '+51 973265883',
+        position: 'Administrador de Hotel',
+        location: 'Jr los zafiros 2023'
+      },
+      loading: false
     };
+  },
+  methods: {
+    goToCreateHotel() {
+      this.$router.push('/CreateHotel');
+    },
+    goToMyHotel() {
+      this.$router.push('/MyHotel');
+    },
+    async logout() {
+      this.loading = true;
+      try {
+        await AuthService.logout();
+        this.$router.push('/');
+        this.$toast.add({
+          severity: 'success',
+          summary: 'Sesión cerrada',
+          detail: 'Has cerrado sesión correctamente',
+          life: 3000
+        });
+      } catch (error) {
+        this.$toast.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Ocurrió un error al cerrar sesión',
+          life: 3000
+        });
+        console.error('Logout error:', error);
+      } finally {
+        this.loading = false;
+      }
+    }
   }
 };
 </script>
@@ -222,29 +131,31 @@ export default {
   width: 100%;
   min-height: 100vh;
   background-color: #f5f5f5;
+  padding: 2rem 0;
 }
 
 .profile-container {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .profile-header {
   display: flex;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  background-color: #1e8449;
+  color: white;
 }
 
 .avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: #e0e0e0;
+  background-color: #f5f5f5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -254,56 +165,142 @@ export default {
 
 .avatar i {
   font-size: 3.5rem;
-  color: #666;
+  color: #2c3e50;
 }
 
 .user-info h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #333;
 }
 
 .user-info p {
   margin: 0.5rem 0 0;
-  color: #666;
+  opacity: 0.8;
   font-size: 1rem;
 }
 
+.name-with-button {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.my-hotel-button {
+  background-color: #2980b9;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.my-hotel-button:hover {
+  background-color: #1c5980;
+}
+
 .profile-details {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem 2rem;
 }
 
-.loading, .error {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1.2rem;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.profile-field {
+  margin-bottom: 1.2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.error {
-  color: #d32f2f;
-  background-color: #ffebee;
+.field-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.3rem;
+}
+
+.field-value {
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.password-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
 }
 
 @media (max-width: 768px) {
   .profile-container {
-    padding: 1rem;
+    margin: 0 1rem;
   }
 
   .profile-header {
     flex-direction: column;
     text-align: center;
-    padding: 1rem;
+    padding: 1.5rem;
   }
 
   .avatar {
     margin-right: 0;
     margin-bottom: 1rem;
   }
+
+  .password-field {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .password-button {
+    margin-top: 1rem;
+    width: 100%;
+  }
+
+  .name-with-button {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+.create-hotel-button-wrapper {
+  margin-top: 2rem;
+  margin-left: 18rem;
+  text-align: center;
+}
+
+.create-hotel-button {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.create-hotel-button:hover {
+  background-color: #1e8449;
+}
+
+.logout-button-wrapper {
+  margin-top: -4.1rem;
+  margin-left: 3rem;
+  margin-bottom: 2rem;
+}
+
+.logout-button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
 }
 </style>

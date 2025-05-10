@@ -1,130 +1,165 @@
-<!-- src/views/admin/AdminAdd.vue -->
+<!-- src/views/AddAdmin.vue -->
 <template>
-  <div class="admin-add-container">
+  <div class="add-admin-container">
     <div class="header">
       <button @click="goBack" class="back-button">
         <i class="fas fa-arrow-left"></i>
       </button>
-      <h1>Add Admin</h1>
+      <h1 class="title">Add Admin</h1>
     </div>
 
-    <div class="form-container">
-      <form @submit.prevent="addAdmin">
+    <div class="admin-form-card">
+      <form @submit.prevent="addAdmin" class="admin-form">
         <div class="form-group">
-          <label for="id">ID</label>
+          <div class="input-icon">
+            <i class="fas fa-key"></i>
+          </div>
           <input
-              id="id"
-              v-model="adminData.id"
+              v-model="admin.id"
               type="number"
+              placeholder="ID"
+              class="form-control"
               required
-              placeholder="Enter ID"
-          >
+          />
         </div>
 
         <div class="form-group">
-          <label for="username">Username</label>
+          <div class="input-icon">
+            <i class="fas fa-user"></i>
+          </div>
           <input
-              id="username"
-              v-model="adminData.username"
+              v-model="admin.username"
+              type="text"
+              placeholder="Username"
+              class="form-control"
               required
-              placeholder="Enter username"
-          >
+          />
         </div>
 
         <div class="form-group">
-          <label for="name">Name</label>
+          <div class="input-icon">
+            <i class="fas fa-user"></i>
+          </div>
           <input
-              id="name"
-              v-model="adminData.name"
+              v-model="admin.name"
+              type="text"
+              placeholder="Name"
+              class="form-control"
               required
-              placeholder="Enter name"
-          >
+          />
         </div>
 
         <div class="form-group">
-          <label for="surname">Surname</label>
+          <div class="input-icon">
+            <i class="fas fa-user"></i>
+          </div>
           <input
-              id="surname"
-              v-model="adminData.surname"
+              v-model="admin.surname"
+              type="text"
+              placeholder="Surname"
+              class="form-control"
               required
-              placeholder="Enter surname"
-          >
+          />
         </div>
 
         <div class="form-group">
-          <label for="email">Email</label>
+          <div class="input-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
           <input
-              id="email"
-              v-model="adminData.email"
+              v-model="admin.email"
               type="email"
+              placeholder="Email"
+              class="form-control"
               required
-              placeholder="Enter email"
-          >
+          />
         </div>
 
         <div class="form-group">
-          <label for="phone">Phone</label>
+          <div class="input-icon">
+            <i class="fas fa-phone"></i>
+          </div>
           <input
-              id="phone"
-              v-model="adminData.phone"
-              type="number"
+              v-model="admin.phone"
+              type="tel"
+              placeholder="Phone"
+              class="form-control"
               required
-              placeholder="Enter phone number"
-          >
+          />
         </div>
 
         <div class="form-group">
-          <label for="state">State</label>
-          <input
-              id="state"
-              v-model="adminData.state"
+          <div class="input-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <select
+              v-model="admin.state"
+              class="form-control"
               required
-              placeholder="Enter state"
           >
+            <option value="" disabled>Select State</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
 
         <div class="form-group">
-          <label for="password">Password</label>
+          <div class="input-icon">
+            <i class="fas fa-lock"></i>
+          </div>
           <input
-              id="password"
-              v-model="adminData.password"
+              v-model="admin.password"
               type="password"
+              placeholder="Password"
+              class="form-control"
               required
-              placeholder="Enter password"
-          >
+          />
         </div>
 
-        <button type="submit" :disabled="isLoading" class="submit-button">
-          <span v-if="isLoading">Adding...</span>
-          <span v-else>Add Admin</span>
-        </button>
+        <div v-if="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+
+        <div class="button-container">
+          <button type="submit" class="submit-button" :disabled="isLoading">
+            <span v-if="isLoading">
+              <i class="fas fa-spinner fa-spin"></i>
+              Loading...
+            </span>
+            <span v-else>
+              Add Admin
+            </span>
+          </button>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <script>
-import AdminService from '@/services/AdminService';
-import NotificationService from '@/services/NotificationService';
-import { getIdentity } from '@/services/AuthService';
+import AdminService from '../../admins/services/AdminService';
+import NotificationService from '../../../communication/services/notificationService.js';
+import Notification from '../../../communication/model/Notification';
 
 export default {
-  name: 'AdminAdd',
+  name: 'AddAdmin',
+
   data() {
     return {
-      adminData: {
+      admin: {
         id: '',
         username: '',
         name: '',
         surname: '',
         email: '',
         phone: '',
-        state: '',
-        password: '',
+        state: 'active', // Set default state
+        password: ''
       },
       isLoading: false,
+      errorMessage: '',
       adminService: new AdminService(),
-      notificationService: new NotificationService(),
+      notificationService: new NotificationService() // Now correctly instantiated
     };
   },
   methods: {
@@ -133,54 +168,103 @@ export default {
     },
     async addAdmin() {
       this.isLoading = true;
+      this.errorMessage = '';
+
       try {
-        // Convert data types as needed
-        const payload = {
-          ...this.adminData,
-          id: parseInt(this.adminData.id),
-          phone: parseInt(this.adminData.phone),
-        };
+        // Check if the ID is already being used
+        const hotelId = this.adminService.getHotelIdFromToken();
+        if (hotelId) {
+          const existingAdmins = await this.adminService.getAdminsByHotelId(hotelId);
+          const idExists = existingAdmins.some(admin => admin.id === parseInt(this.admin.id));
 
-        await this.adminService.createAdmin(payload);
-
-        // Get owner ID from token
-        const ownersId = await getIdentity();
-
-        // Create notification
-        const notificationData = {
-          type: 1,
-          ownerId: parseInt(ownersId),
-          adminId: parseInt(this.adminData.id),
-          workersId: 0,
-          title: 'Welcome to SweetManager!',
-          description: 'Welcome to SweetManager! We\'re thrilled to support your hotel management journey with streamlined operations, improved communication, and enhanced guest satisfaction. Let\'s succeed together!',
-        };
-
-        const isNotificationCreated = await this.notificationService.createNotification(notificationData);
-
-        if (isNotificationCreated) {
-          this.$toast.success('Admin added and notification sent successfully!');
-        } else {
-          this.$toast.error('Failed to create notification!');
+          if (idExists) {
+            this.errorMessage = 'An admin with this ID already exists.';
+            this.isLoading = false;
+            return;
+          }
         }
 
-        this.$router.push({ name: 'AdminManagement' });
+        // Convert string fields to appropriate types
+        const adminData = {
+          id: this.admin.id ? parseInt(this.admin.id) : null,
+          username: this.admin.username,
+          name: this.admin.name,
+          surname: this.admin.surname,
+          email: this.admin.email,
+          phone: this.admin.phone ? this.admin.phone.toString() : null, // Ensure phone is string
+          state: this.admin.state,
+          password: this.admin.password,
+          hotelId: hotelId // Add hotelId to the request
+        };
+
+        // Create admin
+        const response = await this.adminService.createAdmin(adminData);
+
+        // Get owner ID from token
+        const ownerId = this.adminService.getUserIdFromToken();
+
+        if (ownerId) {
+          // Create welcome notification
+          const notification = new Notification(
+              1, // Notification type (1 = message)
+              parseInt(ownerId), // User ID
+              parseInt(this.admin.id), // Admin ID
+              0, // Workers ID
+              'Welcome to SweetManager!', // Title
+              'Welcome to SweetManager! We\'re thrilled to support your hotel management journey with streamlined operations, improved communication, and enhanced guest satisfaction. Let\'s succeed together!' // Description
+          );
+
+          // Try to create notification but don't block admin creation on failure
+          try {
+            await this.notificationService.createNotification(notification);
+            this.toast?.success('Admin added and notification sent successfully!');
+          } catch (notificationError) {
+            console.error('Notification error:', notificationError);
+            // Continue with success message even if notification fails
+            this.toast?.success('Admin added successfully!');
+          }
+        } else {
+          this.toast?.success('Admin added successfully!');
+        }
+
+        // Dispatch a custom event that admin was added
+        document.dispatchEvent(new CustomEvent('admin-added'));
+
+        // Return to previous page
+        this.$router.go(-1);
       } catch (error) {
         console.error('Error adding admin:', error);
-        this.$toast.error(`Failed to add admin: ${error.message}`);
+
+        // Extract the most useful error message
+        let errorMessage = 'Failed to add admin';
+
+        if (error.response && error.response.data) {
+          // Handle structured error response
+          if (typeof error.response.data === 'string') {
+            errorMessage = `${errorMessage}: ${error.response.data}`;
+          } else if (error.response.data.message) {
+            errorMessage = `${errorMessage}: ${error.response.data.message}`;
+          }
+        } else if (error.message) {
+          errorMessage = `${errorMessage}: ${error.message}`;
+        }
+
+        this.errorMessage = errorMessage;
+        // Use optional chaining to prevent errors if toast is undefined
+        this.toast?.error?.(errorMessage);
       } finally {
         this.isLoading = false;
       }
-    },
-  },
+    }
+  }
 };
 </script>
 
 <style scoped>
-.admin-add-container {
-  padding: 20px;
+.add-admin-container {
   max-width: 800px;
   margin: 0 auto;
+  padding: 20px;
 }
 
 .header {
@@ -192,49 +276,76 @@ export default {
 .back-button {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 18px;
   cursor: pointer;
-  margin-right: 15px;
+  margin-right: 10px;
 }
 
-.form-container {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #474C74;
+}
+
+.admin-form-card {
+  background-color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 25px;
 }
 
 .form-group {
+  position: relative;
   margin-bottom: 15px;
 }
 
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
+.input-icon {
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  color: #666;
 }
 
-input {
+.form-control {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 1rem;
+  padding: 10px 10px 10px 35px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 .submit-button {
   background-color: #474C74;
   color: white;
-  padding: 10px 20px;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 16px;
   cursor: pointer;
-  font-size: 1rem;
-  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+  background-color: #3A3E5C;
 }
 
 .submit-button:disabled {
-  background-color: #cccccc;
+  background-color: #999;
   cursor: not-allowed;
+}
+
+.error-message {
+  color: #e74c3c;
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #fadbd8;
+  border-radius: 4px;
+  text-align: center;
 }
 </style>

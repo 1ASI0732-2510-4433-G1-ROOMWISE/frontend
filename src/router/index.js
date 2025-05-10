@@ -49,6 +49,50 @@ const router = createRouter({
             }
         },
 
+        {
+            path: '/admins',
+            name: 'AddAdmin',
+            component: () => import('../profiles/admins/components/admin_management_page.vue'),
+
+        },
+
+        {
+            path : '/admin/add',
+            name : 'AdminAdd',
+            component : () => import('../profiles/admins/components/admin_add_component.vue'),
+        },
+
+        {
+            path: '/MyHotel',
+            name: 'HotelDetail',
+            component: () => import('../profiles/hotels/views/HotelDetail.vue'),
+        },
+
+        {
+            path : '/CreateHotel',
+            name : 'CreateHotel',
+            component : () => import('../profiles/hotels/views/CreateHotel.vue'),
+        },
+
+        {
+            path : '/Workers',
+            name : 'WorkersPage',
+            component : () => import('../profiles/workers/views/WorkerManagement.vue'),
+        },
+
+        {
+          path : '/Workers/Add',
+          name: 'Workers',
+            component: () => import('../profiles/workers/views/AddWorker.vue'),
+        },
+
+        {
+            path : '/Providers',
+            name : 'Providers',
+            component : () => import('../profiles/providers/components/ProviderView.vue'),
+        }
+
+
         // Ruta para manejar accesos no autorizados
 
     ]

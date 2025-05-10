@@ -1,15 +1,15 @@
 // src/models/Admin.js
 export default class Admin {
     constructor({
-                    id,
+                    id = 0,
                     username = null,
                     name = null,
                     surname = null,
                     email = null,
                     phone = null,
                     state = null,
-                    password = null,
-                }) {
+                    password = null
+                } = {}) {
         this.id = id;
         this.username = username;
         this.name = name;
@@ -22,14 +22,14 @@ export default class Admin {
 
     static fromJson(json) {
         return new Admin({
-            id: json.id || 0,
+            id: json.id ?? 0,
             username: json.username,
             name: json.name,
             surname: json.surname,
             email: json.email,
-            phone: json.phone ? parseInt(json.phone.toString()) : null,
+            phone: json.phone != null ? parseInt(json.phone.toString()) : null,
             state: json.state,
-            password: json.password,
+            password: json.password
         });
     }
 
@@ -42,7 +42,7 @@ export default class Admin {
             email: this.email,
             phone: this.phone,
             state: this.state,
-            password: this.password,
+            password: this.password
         };
     }
 }
