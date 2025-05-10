@@ -20,7 +20,7 @@ export default {
         {
           title: "Gestión de proveedores",
           icon: new URL("../../assets/img/11 (3).png", import.meta.url).href,
-          route: "/suppliers"
+          route: "/providers"
         },
         {
           title: "Gestión de administradores",
