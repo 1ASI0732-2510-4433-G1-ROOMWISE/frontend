@@ -13,9 +13,9 @@ export default {
           route: "/workers"
         },
         {
-          title: "Gestión de inventarios",
+          title: "Gestión de rooms",
           icon: new URL("../../assets/img/11 (2).png", import.meta.url).href,
-          route: "/inventory"
+          route: "/type-rooms"
         },
         {
           title: "Gestión de proveedores",
@@ -49,8 +49,8 @@ export default {
           <template v-if="module.title.includes('trabajadores')">
             <img :src="module.icon" alt="Gestión de trabajadores" onerror="this.onerror=null; this.src=''; this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#27ae60\' stroke-width=\'1\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\'></path><circle cx=\'9\' cy=\'7\' r=\'4\'></circle><path d=\'M23 21v-2a4 4 0 0 0-3-3.87\'></path><path d=\'M16 3.13a4 4 0 0 1 0 7.75\'></path></svg>'">
           </template>
-          <template v-else-if="module.title.includes('inventarios')">
-            <img :src="module.icon" alt="Gestión de inventarios" onerror="this.onerror=null; this.src=''; this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#2980b9\' stroke-width=\'1\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\'></path><polyline points=\'3.27 6.96 12 12.01 20.73 6.96\'></polyline><line x1=\'12\' y1=\'22.08\' x2=\'12\' y2=\'12\'></line></svg>'">
+          <template v-else-if="module.title.includes('rooms')">
+            <img :src="module.icon" alt="Gestión de rooms" onerror="this.onerror=null; this.src=''; this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#2980b9\' stroke-width=\'1\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\'></path><polyline points=\'3.27 6.96 12 12.01 20.73 6.96\'></polyline><line x1=\'12\' y1=\'22.08\' x2=\'12\' y2=\'12\'></line></svg>'">
           </template>
           <template v-else-if="module.title.includes('proveedores')">
             <img :src="module.icon" alt="Gestión de proveedores" onerror="this.onerror=null; this.src=''; this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#e67e22\' stroke-width=\'1\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\'></path><circle cx=\'9\' cy=\'7\' r=\'4\'></circle><path d=\'M23 21v-2a4 4 0 0 0-3-3.87\'></path><path d=\'M16 3.13a4 4 0 0 1 0 7.75\'></path></svg>'">

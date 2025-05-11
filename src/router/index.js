@@ -89,8 +89,27 @@ const router = createRouter({
         {
             path : '/Providers',
             name : 'Providers',
-            component : () => import('../profiles/providers/components/ProviderView.vue'),
+            component : () => import('../profiles/providers/components/ProviderManagement.vue'),
+        },
+
+        {
+            path : '/Provider/Add',
+            name : 'AddProviders',
+            component : () => import('../profiles/providers/components/ProviderAdd.vue'),
+        },
+
+        {
+            path: '/type-rooms',
+            name: 'TypeRooms',
+            component: () => import('../Rooms/views/TypeRoomsView.vue'),
+        },
+
+        {
+            path: '/rooms',
+            name: 'rooms',
+            component: () => import('../Rooms/views/RoomsManagement.vue'),
         }
+
 
 
         // Ruta para manejar accesos no autorizados
