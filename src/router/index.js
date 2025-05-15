@@ -1,3 +1,10 @@
+/**
+ * @typedef {Object} RouteMeta
+ * @property {boolean} [guestOnly] - Indica si la ruta es solo para invitados.
+ * @property {boolean} [requiresAuth] - Indica si la ruta requiere autenticación.
+ * @property {number[]} [requiredRoles] - Roles requeridos para acceder a la ruta.
+ */
+
 import { createRouter, createWebHistory } from "vue-router";
 import AccessContentComponent from "../iam/components/access-view/access-content.component.vue";
 import RegisterView from "../iam/components/register-view/register-view.component.vue"; // Importa tu componente de registro
@@ -5,6 +12,8 @@ import AuthService from "../iam/service/auth_service.js";
 import ControlPanelPageComponent from "../public/pages/control-panel-page.component.vue";
 import SuppliesContentComponent from "../supply/components/supplies-content.component.vue";
 import ProfilePage from "../profiles/views/ProfilePage.vue";
+import NotificationsView from "../communication/views/NotificationsView.vue";
+import AddNotificationView from "../communication/views/AddNotificationView.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -108,12 +117,25 @@ const router = createRouter({
             path: '/rooms',
             name: 'rooms',
             component: () => import('../Rooms/views/RoomsManagement.vue'),
+        } ,
+        {
+            path: '/notifications',
+            name: 'Notifications',
+            component: NotificationsView,
+            meta: {
+                requiresAuth: true,
+                requiredRoles: [1, 2]
+            }
+        },
+        {
+            path: '/notifications/add',
+            name: 'AddNotification',
+            component: AddNotificationView,
+            meta: {
+                requiresAuth: true,
+                requiredRoles: [1, 2]
+            }
         }
-
-
-
-        // Ruta para manejar accesos no autorizados
-
     ]
 });
 
@@ -134,7 +156,8 @@ router.beforeEach(async (to, from, next) => {
         // Verificar roles si es necesario
         if (to.meta.requiredRoles) {
             const userRole = AuthService.getCurrentUserRole();
-            if (!to.meta.requiredRoles.includes(parseInt(userRole))) {
+            if (!to.meta.requiredRoles.includes(Number(userRole))) {
+                console.error(`Access denied: User role ${userRole} is not allowed for this route.`);
                 next('/unauthorized');
                 return;
             }

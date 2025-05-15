@@ -127,6 +127,40 @@ class AuthService {
             return config;
         });
     }
+
+    getCurrentUserRole() {
+        const token = this.getToken();
+        if (!token) {
+            console.error('No token found.');
+            return null;
+        }
+
+        try {
+            const decoded = jwtDecode(token);
+            console.log('Decoded token:', decoded);
+            const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+            if (!role) {
+                console.error('Role not found in token.');
+                return null;
+            }
+            console.log('User role from token:', role);
+
+            // Convert string role to number
+            if (role === 'ROLE_OWNER') {
+                return 1;
+            } else if (role === 'ROLE_ADMIN') {
+                return 2;
+            } else if (role === 'ROLE_WORKER') {
+                return 3;
+            } else {
+                console.error('Unknown role:', role);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error decoding token:', error);
+            return null;
+        }
+    }
 }
 
 
@@ -149,18 +183,7 @@ export const isTokenExpired = (token) => {
     }
 };
 
-export const getRole = async () => {
-    const token = await getAccessToken();
-    if (!token) return null;
 
-    try {
-        const decoded = jwtDecode(token);
-        return decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-    } catch (error) {
-        console.error('Error decoding token:', error);
-        return null;
-    }
-};
 
 export const getHotelId = async () => {
     const token = await getAccessToken();

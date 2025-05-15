@@ -1,9 +1,11 @@
 <script>
 import ReportsView from "../../analytics/components/reports-view/reports-view.component.vue";
+import NotificationsView from "../../communication/views/NotificationsView.vue";
+// Modificamos las importaciones para usar el componente de notificaciones correcto
 
 export default {
   name: "control-panel-page",
-  components: { ReportsView },
+  components: { ReportsView, NotificationsView }, // Actualizamos los componentes registrados
   data() {
     return {
       modules: [
@@ -70,6 +72,12 @@ export default {
       </div>
     </div>
 
+    <!-- Sección de notificaciones actualizada -->
+    <div class="notifications-section">
+      <h2 class="section-title">Notificaciones</h2>
+      <NotificationsView />
+    </div>
+
     <!-- ReportsView componente se muestra después de los módulos -->
     <div class="reports-section">
       <reports-view/>
@@ -89,6 +97,14 @@ export default {
   font-size: 28px;
   margin-bottom: 30px;
   font-weight: 600;
+  padding-left: 10px;
+}
+
+.section-title {
+  color: #2c3e50;
+  font-size: 22px;
+  margin-bottom: 15px;
+  font-weight: 500;
   padding-left: 10px;
 }
 
@@ -155,6 +171,15 @@ export default {
 .arrow {
   font-size: 24px;
   margin-left: 10px;
+}
+
+.notifications-section {
+  margin-top: 20px;
+  margin-bottom: 40px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
 }
 
 .reports-section {
