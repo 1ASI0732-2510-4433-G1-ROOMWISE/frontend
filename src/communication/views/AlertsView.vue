@@ -40,6 +40,9 @@ export default {
   methods: {
     async loadHotelId() {
       // Implement based on your auth system
+// SUGERENCIA: Obtener hotelId desde el sistema de autenticación actual (ej. Vuex, JWT, API de usuario actual)
+// Esto evitaría problemas si se cambia el contexto de usuario o múltiples hoteles están involucrados.
+
       this.hotelId = 1; // Replace with actual hotel ID logic
     },
     async fetchAlerts() {
