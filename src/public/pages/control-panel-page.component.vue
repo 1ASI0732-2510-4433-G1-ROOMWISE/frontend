@@ -1,11 +1,10 @@
 <script>
 import ReportsView from "../../analytics/components/reports-view/reports-view.component.vue";
 import NotificationsView from "../../communication/views/NotificationsView.vue";
-// Modificamos las importaciones para usar el componente de notificaciones correcto
 
 export default {
   name: "control-panel-page",
-  components: { ReportsView, NotificationsView }, // Actualizamos los componentes registrados
+  components: { ReportsView, NotificationsView },
   data() {
     return {
       modules: [
@@ -17,7 +16,7 @@ export default {
         {
           title: "Gestión de rooms",
           icon: new URL("../../assets/img/11 (2).png", import.meta.url).href,
-          route: "/type-rooms"
+          route: "/rooms"
         },
         {
           title: "Gestión de proveedores",
@@ -47,7 +46,6 @@ export default {
     <div class="modules-container">
       <div v-for="(module, index) in modules" :key="index" class="module-card">
         <div class="module-icon">
-          <!-- Si no tienes los iconos como imágenes, puedes usar estos SVGs como alternativa -->
           <template v-if="module.title.includes('trabajadores')">
             <img :src="module.icon" alt="Gestión de trabajadores" onerror="this.onerror=null; this.src=''; this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#27ae60\' stroke-width=\'1\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\'></path><circle cx=\'9\' cy=\'7\' r=\'4\'></circle><path d=\'M23 21v-2a4 4 0 0 0-3-3.87\'></path><path d=\'M16 3.13a4 4 0 0 1 0 7.75\'></path></svg>'">
           </template>
@@ -72,24 +70,48 @@ export default {
       </div>
     </div>
 
-    <!-- Sección de notificaciones actualizada -->
+    <!-- Sección de notificaciones -->
     <div class="notifications-section">
       <h2 class="section-title">Notificaciones</h2>
-      <NotificationsView />
+      <div class="notifications-wrapper">
+        <NotificationsView />
+      </div>
     </div>
 
-    <!-- ReportsView componente se muestra después de los módulos -->
+    <!-- ReportsView componente -->
     <div class="reports-section">
-      <reports-view/>
+      <div class="reports-wrapper">
+        <reports-view/>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* Eliminación global de scrollbars */
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE y Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+}
+
 .control-panel-container {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  /* Eliminación completa de scroll */
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.control-panel-container::-webkit-scrollbar {
+  display: none !important;
 }
 
 .panel-title {
@@ -110,19 +132,32 @@ export default {
 
 .modules-container {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Fuerza 4 columnas */
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 40px;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.modules-container::-webkit-scrollbar {
+  display: none !important;
 }
 
 .module-card {
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: transform 0.3s, box-shadow 0.3s;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.module-card::-webkit-scrollbar {
+  display: none !important;
 }
 
 .module-card:hover {
@@ -137,6 +172,13 @@ export default {
   height: 150px;
   padding: 20px;
   background-color: #f8f9fa;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.module-icon::-webkit-scrollbar {
+  display: none !important;
 }
 
 .module-icon img, .module-icon svg {
@@ -180,23 +222,263 @@ export default {
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.notifications-section::-webkit-scrollbar {
+  display: none !important;
+}
+
+.notifications-wrapper {
+  width: 100%;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.notifications-wrapper::-webkit-scrollbar {
+  display: none !important;
 }
 
 .reports-section {
   margin-top: 40px;
+  margin-bottom: 40px;
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.reports-section::-webkit-scrollbar {
+  display: none !important;
+}
+
+.reports-wrapper {
+  width: 100%;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.reports-wrapper::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Estilos deep para componentes anidados - eliminación total de scrollbars */
+:deep(*) {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(*::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(.notifications-view) {
+  overflow: visible !important;
+  max-height: none !important;
+  width: 100% !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(.notifications-view::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(.reports-view) {
+  overflow: visible !important;
+  max-height: none !important;
+  width: 100% !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(.reports-view::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(.table-container) {
+  overflow: visible !important;
+  max-height: none !important;
+  width: 100%;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(.table-container::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(.table-wrapper) {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(.table-wrapper::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(.notifications-table) {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(.notifications-table::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(.notifications-container) {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(.notifications-container::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(.table-responsive) {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(.table-responsive::-webkit-scrollbar) {
+  display: none !important;
+}
+
+/* Eliminación de scroll en cualquier elemento con clase que contenga 'scroll' */
+:deep([class*="scroll"]) {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep([class*="scroll"]::-webkit-scrollbar) {
+  display: none !important;
+}
+
+/* Eliminación de scroll en elementos con estilos inline */
+:deep(*[style*="overflow"]) {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(*[style*="overflow"]::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(table) {
+  width: 100%;
+  table-layout: auto;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(table::-webkit-scrollbar) {
+  display: none !important;
+}
+
+/* Eliminación de scroll en divs genéricos */
+:deep(div) {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:deep(div::-webkit-scrollbar) {
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .control-panel-container {
+    padding: 15px;
+  }
+
+  .modules-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
 }
 
 @media (max-width: 768px) {
+  .control-panel-container {
+    padding: 10px;
+  }
+
   .modules-container {
     grid-template-columns: 1fr;
+    gap: 15px;
   }
 
   .module-icon {
     height: 120px;
+  }
+
+  .panel-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .notifications-section,
+  .reports-section {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .control-panel-container {
+    padding: 8px;
+  }
+
+  .panel-title {
+    font-size: 22px;
+    padding-left: 5px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    padding-left: 5px;
+  }
+
+  .notifications-section,
+  .reports-section {
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+
+  .module-icon {
+    height: 100px;
+    padding: 15px;
+  }
+
+  .action-button {
+    padding: 10px 12px;
+    font-size: 14px;
   }
 }
 </style>
