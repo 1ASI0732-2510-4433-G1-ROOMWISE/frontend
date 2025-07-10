@@ -17,9 +17,7 @@ export default {
       loading: false,
       error: null,
       roles: [
-        { label: 'Owner', value: 1 },
-        { label: 'Admin', value: 2 },
-        { label: 'Worker', value: 3 }
+        { label: 'Owner', value: 1 }
       ]
     }
   },
