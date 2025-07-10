@@ -1,110 +1,197 @@
-import axios from 'axios';
-import AuthService from '../../iam/service/auth_service.js';
-import { RoomModel } from '../models/Room.js';
+// RoomService.js
+const API_BASE_URL = 'https://localhost:7138/api'; // Ajusta según tu configuración
 
-const API_BASE_URL = 'https://localhost:44390/api';
-
-// Crear una instancia personalizada de axios
-const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: false
-});
-
-// Interceptor para añadir token de autenticación
-axiosInstance.interceptors.request.use(config => {
-    const token = AuthService.getToken();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+class RoomService {
+    // Método para obtener el token de autenticación
+    static getAuthToken() {
+        return localStorage.getItem('token') ||
+            localStorage.getItem('authToken') ||
+            sessionStorage.getItem('authToken') ||
+            sessionStorage.getItem('token');
     }
-    return config;
-});
 
-// Interceptor para manejo de errores
-axiosInstance.interceptors.response.use(
-    response => response,
-    error => {
-        console.error('API Request failed:', error);
+    // Método para crear headers con autenticación
+    static getAuthHeaders() {
+        const token = this.getAuthToken();
+        const headers = {
+            'Content-Type': 'application/json',
+            'accept': '*/*'
+        };
 
-        if (error.code === 'ERR_NETWORK') {
-            error.friendlyMessage = 'No se pudo conectar al servidor. Verifique su conexión a internet y que el servidor esté funcionando.';
-        } else if (error.response) {
-            if (error.response.status === 401) {
-                error.friendlyMessage = 'Su sesión ha expirado o no tiene permisos para realizar esta acción. Por favor, inicie sesión nuevamente.';
-            } else {
-                error.friendlyMessage = `Error del servidor: ${error.response.status} - ${error.response.data?.message || 'Error desconocido'}`;
-            }
-        } else {
-            error.friendlyMessage = 'Error desconocido al procesar la solicitud.';
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
 
-        throw error;
+        return headers;
     }
-);
 
-export default {
-    /**
-     * Obtener todas las habitaciones, opcionalmente filtradas por hotelId
-     * @param {number} hotelId
-     * @returns {Promise}
-     */
-    getAllRooms(hotelId) {
-        const params = hotelId ? { hotelId } : {};
-        return axiosInstance.get('/rooms/get-all-rooms', { params })
-            .then(response => response.data)
-            .catch(error => {
-                console.error('Error fetching rooms:', error);
-                throw error;
+    // Obtener todas las habitaciones de un hotel
+    static async getAllRooms(hotelId) {
+        try {
+            const url = `${API_BASE_URL}/rooms/get-all-rooms?hotelId=${hotelId}`;
+
+            console.log('Llamando a:', url);
+            console.log('Headers:', this.getAuthHeaders());
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getAuthHeaders()
             });
-    },
 
-    /**
-     * Crear una nueva habitación
-     * @param {Object} roomData
-     * @returns {Promise}
-     */
-    createRoom(roomData) {
-        return axiosInstance.post('/rooms/create-room', roomData)
-            .then(response => response.data)
-            .catch(error => {
-                console.error('Error creating room:', error);
-                throw error;
-            });
-    },
+            console.log('Response status:', response.status);
 
-    /**
-     * Obtener tipos de habitación disponibles
-     * @returns {Promise}
-     */
-    getRoomTypes() {
-        return axiosInstance.get('/rooms/room-types')
-            .then(response => response.data)
-            .catch(error => {
-                console.error('Error fetching room types:', error);
-                throw error;
-            });
-    },
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Token de autenticación inválido o expirado');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-    /**
-     * Obtener hoteles disponibles
-     * @returns {Promise}
-     */
-    getHotels() {
-        const token = AuthService.getToken();
-        console.log('Using token for hotels request:', token ? 'Token exists' : 'No token found');
+            const rooms = await response.json();
+            console.log('Habitaciones recibidas:', rooms);
 
-        return axiosInstance.get('/hotels')
-            .then(response => {
-                console.log('Hotels API request successful');
-                return response.data;
-            })
-            .catch(error => {
-                console.error('Error fetching hotels:', error);
-                console.error('Response status:', error.response?.status);
-                console.error('Response data:', error.response?.data);
-                throw error;
-            });
+            // Mapear roomState a status para compatibilidad con el frontend
+            const mappedRooms = rooms.map(room => ({
+                ...room,
+                status: this.mapRoomState(room.roomState)
+            }));
+
+            return mappedRooms;
+        } catch (error) {
+            console.error('Error en getAllRooms:', error);
+            throw {
+                friendlyMessage: error.message || 'Error al obtener las habitaciones',
+                originalError: error
+            };
+        }
     }
-};
+
+    // Mapear roomState de la API a status para el frontend
+    static mapRoomState(roomState) {
+        const stateMap = {
+            'LIBRE': 'Disponible',
+            'OCUPADA': 'Ocupada',
+            'MANTENIMIENTO': 'Mantenimiento',
+            'LIMPIEZA': 'Limpieza'
+        };
+
+        return stateMap[roomState] || 'Disponible';
+    }
+
+    // Crear una nueva habitación
+    static async createRoom(roomData) {
+        try {
+            const url = `${API_BASE_URL}/rooms/create-room`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify(roomData)
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Token de autenticación inválido o expirado');
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'Error desconocido'}`);
+            }
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error en createRoom:', error);
+            throw {
+                friendlyMessage: error.message || 'Error al crear la habitación',
+                originalError: error
+            };
+        }
+    }
+
+    // Obtener detalles de una habitación específica
+    static async getRoomById(roomId) {
+        try {
+            const url = `${API_BASE_URL}/rooms/${roomId}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Token de autenticación inválido o expirado');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const room = await response.json();
+            return room;
+        } catch (error) {
+            console.error('Error en getRoomById:', error);
+            throw {
+                friendlyMessage: error.message || 'Error al obtener los detalles de la habitación',
+                originalError: error
+            };
+        }
+    }
+
+    // Actualizar una habitación
+    static async updateRoom(roomId, roomData) {
+        try {
+            const url = `${API_BASE_URL}/rooms/${roomId}`;
+
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify(roomData)
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Token de autenticación inválido o expirado');
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'Error desconocido'}`);
+            }
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error en updateRoom:', error);
+            throw {
+                friendlyMessage: error.message || 'Error al actualizar la habitación',
+                originalError: error
+            };
+        }
+    }
+
+    // Eliminar una habitación
+    static async deleteRoom(roomId) {
+        try {
+            const url = `${API_BASE_URL}/rooms/${roomId}`;
+
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Token de autenticación inválido o expirado');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error en deleteRoom:', error);
+            throw {
+                friendlyMessage: error.message || 'Error al eliminar la habitación',
+                originalError: error
+            };
+        }
+    }
+}
+
+export default RoomService;
