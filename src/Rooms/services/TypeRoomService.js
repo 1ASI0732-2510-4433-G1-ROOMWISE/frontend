@@ -4,7 +4,7 @@ import AuthService from '../../iam/service/auth_service.js';
 
 const API_BASE_URL = 'https://localhost:7138/api';
 
-// Crear una instancia personalizada de axios
+// Esto es para crear una instancia personalizada de axios
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
