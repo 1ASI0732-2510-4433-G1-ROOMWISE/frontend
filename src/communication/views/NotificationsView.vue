@@ -1,10 +1,10 @@
 <template>
   <div class="notifications-container">
     <div class="notifications-header">
-      <h1>Notificaciones</h1>
-      <button class="add-notification-button">
+      <h1>Notifications</h1>
+      <button class="add-notification-button" @click="goToAddNotification">
         <span class="button-icon">➕</span>
-        Agregar Notificación
+        Add Notification
       </button>
     </div>
 
@@ -12,34 +12,31 @@
       <table class="notifications-table">
         <thead>
         <tr>
-          <th>TIPO</th>
-          <th>FECHA</th>
-          <th>HORA</th>
-          <th>ESTADO</th>
-          <th>MENSAJE</th>
-          <th>ACCIONES</th>
+          <th>TYPE</th>
+          <th>DATE</th>
+          <th>TITLE</th>
+          <th>SENDER</th>
+          <th>ACTIONS</th>
         </tr>
         </thead>
         <tbody>
         <tr v-if="isLoading">
-          <td colspan="6" class="loading-message">Cargando notificaciones...</td>
+          <td colspan="5" class="loading-message">Loading notifications...</td>
         </tr>
         <tr v-else-if="notifications.length === 0">
-          <td colspan="6" class="empty-message">No hay notificaciones disponibles</td>
+          <td colspan="5" class="empty-message">No notifications available</td>
         </tr>
         <tr v-for="notification in displayedNotifications" :key="notification.id">
           <td>{{ getNotificationType(notification.typesNotificationsId) }}</td>
-          <td>{{ formatDate(notification.createdAt) }}</td>
-          <td>{{ formatTime(notification.createdAt) }}</td>
-          <td>{{ notification.read ? 'Leído' : 'No leído' }}</td>
+          <td>{{ formatDate(notification.startDate) }}</td>
           <td>{{ notification.title }}</td>
+          <td>{{ getSender(notification) }}</td>
           <td>
             <div class="actions-dropdown">
-              <button class="dropdown-button">Acciones ▼</button>
+              <button class="dropdown-button">Actions ▼</button>
               <div class="dropdown-content">
-                <button @click="viewNotification(notification)">Ver detalles</button>
-                <button @click="markAsRead(notification)" v-if="!notification.read">Marcar como leído</button>
-                <button @click="deleteNotification(notification)">Eliminar</button>
+                <button @click="viewNotification(notification)">View Details</button>
+                <button @click="deleteNotification(notification)" class="delete-btn">Delete</button>
               </div>
             </div>
           </td>
@@ -49,53 +46,38 @@
     </div>
 
     <div class="pagination">
-      <span>Notificaciones por página</span>
-      <select v-model="perPage" @change="handlePerPageChange">
-        <option value="3">3</option>
-        <option value="5">5</option>
-        <option value="10">10</option>
-        <option value="20">20</option>
-      </select>
       <span>{{ paginationText }}</span>
       <div class="pagination-controls">
-        <button @click="prevPage" :disabled="currentPage === 1">
-          <span class="pagination-arrow">◀</span>
-        </button>
-        <button @click="nextPage" :disabled="currentPage >= totalPages">
-          <span class="pagination-arrow">▶</span>
-        </button>
+        <button @click="prevPage" :disabled="currentPage === 1">◀</button>
+        <button @click="nextPage" :disabled="currentPage >= totalPages">▶</button>
       </div>
     </div>
 
-    <!-- Modal para ver detalles -->
-    <div v-if="showModal" class="notification-modal">
-      <div class="modal-content">
+    <!-- Modal -->
+    <div v-if="showModal" class="notification-modal" @click="closeModal">
+      <div class="modal-content" @click.stop>
         <span class="close-button" @click="closeModal">&times;</span>
-        <h2>Detalles de la notificación</h2>
+        <h2>Notification Details</h2>
         <div class="notification-details">
           <div class="detail-row">
-            <strong>Tipo:</strong>
-            <span>{{ getNotificationType(selectedNotification.typesNotificationsId) }}</span>
+            <strong>Type:</strong> {{ getNotificationType(selectedNotification.typesNotificationsId) }}
           </div>
           <div class="detail-row">
-            <strong>Título:</strong>
-            <span>{{ selectedNotification.title }}</span>
+            <strong>Title:</strong> {{ selectedNotification.title }}
           </div>
           <div class="detail-row">
-            <strong>Fecha:</strong>
-            <span>{{ formatDate(selectedNotification.createdAt) }}</span>
+            <strong>Date:</strong> {{ formatDate(selectedNotification.startDate) }}
           </div>
           <div class="detail-row">
-            <strong>Hora:</strong>
-            <span>{{ formatTime(selectedNotification.createdAt) }}</span>
+            <strong>Sender:</strong> {{ getSender(selectedNotification) }}
           </div>
-          <div class="detail-row">
-            <strong>Descripción:</strong>
+          <div class="detail-row full-width">
+            <strong>Description:</strong>
             <p>{{ selectedNotification.description }}</p>
           </div>
         </div>
         <div class="modal-actions">
-          <button @click="closeModal" class="close-modal-button">Cerrar</button>
+          <button @click="closeModal" class="close-modal-button">Close</button>
         </div>
       </div>
     </div>
@@ -103,17 +85,20 @@
 </template>
 
 <script>
-import notificationService from '../services/notificationService.js';
-import AuthService from '../../iam/service/auth_service.js';
+import NotificationService from '../services/notificationService.js';
+
+const notificationService = new NotificationService();
 
 export default {
   name: 'NotificationsView',
   data() {
     return {
       notifications: [],
+      notificationTypes: [],
+      userInfo: null,
       isLoading: true,
       currentPage: 1,
-      perPage: 3,
+      perPage: 5,
       showModal: false,
       selectedNotification: {},
     };
@@ -124,87 +109,133 @@ export default {
     },
     displayedNotifications() {
       const start = (this.currentPage - 1) * this.perPage;
-      const end = start + this.perPage;
-      return this.notifications.slice(start, end);
+      return this.notifications.slice(start, start + this.perPage);
     },
     paginationText() {
-      if (this.notifications.length === 0) return '0-0 de 0';
+      if (this.notifications.length === 0) return '0 of 0';
       const start = (this.currentPage - 1) * this.perPage + 1;
       const end = Math.min(start + this.perPage - 1, this.notifications.length);
-      return `${start}-${end} de ${this.notifications.length}`;
+      return `${start}-${end} of ${this.notifications.length}`;
     }
   },
   async created() {
+    await this.fetchUserInfo();
     await this.fetchNotifications();
+    await this.fetchNotificationTypes();
   },
   methods: {
+    async fetchUserInfo() {
+      try {
+        const userId = this.getUserIdFromToken();
+        if (userId) {
+          // Usar el endpoint para obtener la información del usuario
+          const response = await fetch(`https://localhost:7138/api/v1/user/get-owner-id?id=${userId}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            this.userInfo = await response.json();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    },
     async fetchNotifications() {
       try {
         this.isLoading = true;
-        const hotelId = AuthService.getCurrentHotelId();
+        const hotelId = this.getHotelIdFromToken();
         this.notifications = await notificationService.getAllNotifications(hotelId);
-
-        // Añadimos un campo 'read' temporal para simular el estado
-        this.notifications = this.notifications.map(n => ({
-          ...n,
-          read: false,
-          createdAt: new Date().toISOString() // Simulamos una fecha de creación
-        }));
       } catch (error) {
         console.error('Error fetching notifications:', error);
+        this.notifications = [];
       } finally {
         this.isLoading = false;
       }
     },
+    async fetchNotificationTypes() {
+      try {
+        this.notificationTypes = await notificationService.getNotificationTypes();
+      } catch (error) {
+        console.error('Error fetching notification types:', error);
+      }
+    },
+    getHotelIdFromToken() {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/locality'];
+      } catch (error) {
+        console.error('Error parsing token:', error);
+        return null;
+      }
+    },
+    getUserIdFromToken() {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'];
+      } catch (error) {
+        console.error('Error parsing token:', error);
+        return null;
+      }
+    },
     getNotificationType(typeId) {
-      const types = {
-        1: 'Solicitud',
-        2: 'Recordatorio',
-        3: 'Comentario',
-        // Agregar más tipos según sea necesario
-      };
-      return types[typeId] || 'Otro';
+      const type = this.notificationTypes.find(t => t.id === typeId);
+      return type ? type.name : `Type ${typeId}`;
+    },
+    getSender(notification) {
+      if (this.userInfo) {
+        const userName = this.userInfo.name || this.userInfo.name || 'Unknown';
+        const userId = this.getUserIdFromToken();
+        return `${userName} (ID: ${userId})`;
+      }
+
+      // Fallback si no se pudo obtener la información del usuario
+      const userId = this.getUserIdFromToken();
+      return userId ? `User ID: ${userId}` : 'Unknown Sender';
     },
     formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    },
-    formatTime(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      return new Date(dateString).toLocaleDateString();
     },
     nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
+      if (this.currentPage < this.totalPages) this.currentPage++;
     },
     prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-    handlePerPageChange() {
-      this.currentPage = 1; // Reset to first page
+      if (this.currentPage > 1) this.currentPage--;
     },
     viewNotification(notification) {
       this.selectedNotification = notification;
       this.showModal = true;
     },
-    async markAsRead(notification) {
-      // Aquí iría la lógica para marcar como leído en el backend
-      notification.read = true;
-    },
     async deleteNotification(notification) {
-      // Implementar lógica para eliminar notificación
-      if (confirm('¿Está seguro que desea eliminar esta notificación?')) {
-        // Aquí iría el código para eliminar en el backend
-        this.notifications = this.notifications.filter(n => n !== notification);
+      if (!confirm('Are you sure you want to delete this notification?')) return;
+
+      try {
+        await notificationService.deleteNotification(notification.id);
+        this.notifications = this.notifications.filter(n => n.id !== notification.id);
+        if (this.displayedNotifications.length === 0 && this.currentPage > 1) {
+          this.currentPage--;
+        }
+      } catch (error) {
+        console.error('Error deleting notification:', error);
+        alert('Failed to delete notification');
       }
     },
     closeModal() {
       this.showModal = false;
+      this.selectedNotification = {};
+    },
+    goToAddNotification() {
+      this.$router.push('/add-notification');
     }
   }
 };
@@ -216,9 +247,6 @@ export default {
   padding: 1rem;
   border-radius: 8px;
   width: 100%;
-  margin: 0;
-  height: auto;
-  min-height: auto;
 }
 
 .notifications-header {
@@ -242,7 +270,6 @@ export default {
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 4px;
-  font-weight: 500;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -261,7 +288,7 @@ export default {
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .notifications-table {
@@ -312,7 +339,6 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.8rem;
-  font-weight: 500;
 }
 
 .dropdown-content {
@@ -330,7 +356,6 @@ export default {
 .dropdown-content button {
   color: #4a5568;
   padding: 0.5rem 0.75rem;
-  text-decoration: none;
   display: block;
   background: none;
   border: none;
@@ -338,12 +363,10 @@ export default {
   text-align: left;
   cursor: pointer;
   font-size: 0.8rem;
-  transition: background-color 0.2s;
 }
 
 .dropdown-content button:hover {
   background-color: #f0f4f8;
-  color: #437f54;
 }
 
 .actions-dropdown:hover .dropdown-content {
@@ -358,14 +381,6 @@ export default {
   color: #4a5568;
 }
 
-.pagination select {
-  margin: 0 8px;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  background-color: white;
-}
-
 .pagination-controls {
   display: flex;
   margin-left: 12px;
@@ -376,15 +391,8 @@ export default {
   background-color: white;
   padding: 0.25rem 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.pagination-controls button:first-child {
-  border-radius: 4px 0 0 4px;
-}
-
-.pagination-controls button:last-child {
-  border-radius: 0 4px 4px 0;
+  margin: 0 2px;
+  border-radius: 4px;
 }
 
 .pagination-controls button:disabled {
@@ -396,7 +404,6 @@ export default {
   background-color: #f0f4f8;
 }
 
-/* Modal styles */
 .notification-modal {
   position: fixed;
   top: 0;
@@ -460,7 +467,6 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s;
 }
 
 .close-modal-button:hover {
@@ -484,12 +490,7 @@ export default {
   }
 
   .pagination {
-    flex-wrap: wrap;
     justify-content: center;
-  }
-
-  .pagination > * {
-    margin: 5px;
   }
 }
 </style>
