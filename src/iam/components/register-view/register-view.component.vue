@@ -12,7 +12,7 @@ export default {
   data() {
     return {
       formData: {
-        id: "", // Add ID field for DNI/identification
+        id: "", // Add ID field for DNI/identification (ID) 
         username: "",
         name: "",
         surname: "",
