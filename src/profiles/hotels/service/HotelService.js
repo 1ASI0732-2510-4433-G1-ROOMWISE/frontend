@@ -3,7 +3,7 @@ import { Hotel } from '../models/Hotel.js';
 export class HotelService {
     constructor() {
         // URL base del API con protocolo HTTPS
-        this.baseUrl = 'https://localhost:44390/api/hotel';
+        this.baseUrl = 'https://localhost:7138/api/hotel';
     }
 
     async fetchHotels() {

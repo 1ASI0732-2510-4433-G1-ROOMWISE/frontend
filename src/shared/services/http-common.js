@@ -5,7 +5,7 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 const http = axios.create({
-    baseURL: 'https://sweetmanager.ryzeon.me/',
+    baseURL: 'https://localhost:7138/api',
     headers: { 'content-type': 'application/json'}
 });
 
