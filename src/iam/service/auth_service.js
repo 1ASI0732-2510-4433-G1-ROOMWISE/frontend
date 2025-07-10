@@ -1,20 +1,16 @@
 import axios from 'axios';
 import {jwtDecode} from "jwt-decode";
 
-const API_URL = 'https://localhost:44390/api/v1/authentication';
+const API_URL = 'https://localhost:7138/api/v1/authentication';
 
-// Configuración especial para desarrollo local con HTTPS
 const axiosInstance = axios.create({
     baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
-    // Necesario para desarrollo local con certificado auto-firmado
-
 });
 
 class AuthService {
-
     static axiosInstance = axiosInstance;
 
     async login(email, password, roleId) {
@@ -32,6 +28,76 @@ class AuthService {
             return false;
         } catch (error) {
             console.error('Login error:', error);
+            throw error;
+        }
+    }
+
+    // Nuevo método para refrescar el token después de crear un hotel
+    async refreshToken() {
+        try {
+            const currentToken = this.getToken();
+            if (!currentToken) {
+                throw new Error('No hay token disponible para refrescar');
+            }
+
+            const response = await axiosInstance.post('/refresh-token', {}, {
+                headers: {
+                    'Authorization': `Bearer ${currentToken}`
+                }
+            });
+
+            if (response.status === 200 && response.data.token) {
+                localStorage.setItem('token', response.data.token);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error al refrescar token:', error);
+            throw error;
+        }
+    }
+
+    // Método alternativo: Re-autenticar silenciosamente
+    async silentReauth() {
+        try {
+            const currentToken = this.getToken();
+            if (!currentToken) {
+                throw new Error('No hay token disponible');
+            }
+
+            const decoded = this.getDecodedToken();
+            if (!decoded) {
+                throw new Error('Token inválido');
+            }
+
+            // Obtener información del usuario desde el token actual
+            const userEmail = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
+            const userRole = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
+            // Convertir rol a ID
+            let roleId;
+            if (userRole === 'ROLE_OWNER') roleId = 1;
+            else if (userRole === 'ROLE_ADMIN') roleId = 2;
+            else if (userRole === 'ROLE_WORKER') roleId = 3;
+            else throw new Error('Rol no válido');
+
+            // Realizar re-autenticación silenciosa
+            const response = await axiosInstance.post('/refresh-user-token', {
+                email: userEmail,
+                rolesId: roleId
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${currentToken}`
+                }
+            });
+
+            if (response.status === 200 && response.data.token) {
+                localStorage.setItem('token', response.data.token);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error en re-autenticación silenciosa:', error);
             throw error;
         }
     }
@@ -93,7 +159,6 @@ class AuthService {
         }
     }
 
-
     getDecodedToken() {
         const token = this.getToken();
         if (!token) return null;
@@ -145,7 +210,6 @@ class AuthService {
             }
             console.log('User role from token:', role);
 
-            // Convert string role to number
             if (role === 'ROLE_OWNER') {
                 return 1;
             } else if (role === 'ROLE_ADMIN') {
@@ -162,7 +226,6 @@ class AuthService {
         }
     }
 }
-
 
 const storage = {
     getItem: (key) => localStorage.getItem(key),
@@ -182,8 +245,6 @@ export const isTokenExpired = (token) => {
         return true;
     }
 };
-
-
 
 export const getHotelId = async () => {
     const token = await getAccessToken();
@@ -211,6 +272,5 @@ export const getIdentity = async () => {
         return null;
     }
 };
-
 
 export default new AuthService();
