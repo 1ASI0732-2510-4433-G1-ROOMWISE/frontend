@@ -13,7 +13,7 @@
         </p>
       </div>
 
-      <pv-tab-view ref="tabView" class="mt-3">
+      <pv-tab-view ref="tabView" class="mt-3" v-model:activeIndex="activeTab">
         <pv-tab-panel :header="i18n.global.t('login-view.login')">
           <login-view @successful-login="handleSuccessfulLogin"/>
         </pv-tab-panel>
@@ -38,6 +38,11 @@ import { useToast } from 'primevue/usetoast';
 export default {
   name: "access-content",
   components: { LoginView, RegisterView },
+  data() {
+    return {
+      activeTab: 0
+    };
+  },
   computed: {
     i18n() {
       return i18n;
@@ -47,14 +52,23 @@ export default {
     const toast = useToast();
     return { toast };
   },
-  created() {
-    this.checkAuthentication();
+  mounted() {
+    // Configurar la pestaña activa según el meta.defaultTab de la ruta
+    this.setActiveTab();
+  },
+  watch: {
+    // Observar cambios en la ruta para actualizar la pestaña activa
+    '$route'(to, from) {
+      this.setActiveTab();
+    }
   },
   methods: {
-    checkAuthentication() {
-      if (AuthService.isAuthenticated()) {
-        const role = AuthService.getCurrentUserRole();
-        this.redirectBasedOnRole(role);
+    setActiveTab() {
+      // Configurar la pestaña activa basada en el meta de la ruta
+      if (this.$route.meta.defaultTab === 'register') {
+        this.activeTab = 1;
+      } else {
+        this.activeTab = 0;
       }
     },
     handleSuccessfulLogin() {
@@ -63,7 +77,9 @@ export default {
     },
     handleSuccessfulRegistration() {
       // Cambiar a la pestaña de login después de registro exitoso
-      this.$refs.tabView.activeIndex = 0;
+      this.activeTab = 0;
+      // También cambiar la ruta para mantener consistencia
+      this.$router.push('/login');
       this.toast.add({
         severity: 'success',
         summary: 'Registro exitoso',
@@ -71,27 +87,32 @@ export default {
         life: 3000
       });
     },
-    redirectBasedOnRole(role) {
-      let redirectPath = '/panel'; // Ruta por defecto
-
-      // Personaliza las rutas según el rol si es necesario
-      switch(role) {
-        case '1': // Owner
-          redirectPath = '/owner-dashboard';
-          break;
-        case '2': // Admin
-          redirectPath = '/admin-dashboard';
-          break;
-        case '3': // Worker
-          redirectPath = '/worker-dashboard';
-          break;
-      }
-
-      this.$router.push(redirectPath);
-    },
-
     goToRegister() {
       this.$router.push('/register');
+    },
+    redirectBasedOnRole(role) {
+      // Implementar la lógica de redirección basada en el rol
+      switch (role) {
+        case 1: // ROLE_OWNER
+          this.$router.push('/panel');
+          break;
+        case 2: // ROLE_ADMIN
+          this.$router.push('/panel');
+          break;
+        case 3: // ROLE_WORKER
+          this.$router.push('/panel');
+          break;
+        default:
+          console.error('Rol no reconocido:', role);
+          // Si el rol no es reconocido, logout y mantener en login
+          AuthService.logout();
+          this.toast.add({
+            severity: 'error',
+            summary: 'Error de autenticación',
+            detail: 'Rol de usuario no válido',
+            life: 3000
+          });
+      }
     }
   }
 };
