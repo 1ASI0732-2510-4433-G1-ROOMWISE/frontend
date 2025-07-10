@@ -9,7 +9,7 @@ const API_BASE_URL = 'https://localhost:7138/api'; // Ajusta según tu configura
  * - Fetching all rooms for a specific hotel
  * - Creating, updating, and deleting room records
  * - Fetching detailed information for a specific room
- * - Mapping room state values from backend to frontend-friendly labels
+ * - Mapping room state values from backend to frontend-friendly labels.
  * 
  * Authentication is handled using JWT tokens stored in `localStorage` or `sessionStorage`,
  * and automatically included in the request headers.
@@ -17,7 +17,7 @@ const API_BASE_URL = 'https://localhost:7138/api'; // Ajusta según tu configura
  * This service uses the native Fetch API for HTTP requests.
  */
 class RoomService {
-    // Método para obtener el token de autenticación
+    // Este método es para obtener el token de autenticación.
     static getAuthToken() {
         return localStorage.getItem('token') ||
             localStorage.getItem('authToken') ||
