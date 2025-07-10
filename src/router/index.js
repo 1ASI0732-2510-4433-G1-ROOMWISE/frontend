@@ -7,7 +7,6 @@
 
 import { createRouter, createWebHistory } from "vue-router";
 import AccessContentComponent from "../iam/components/access-view/access-content.component.vue";
-import RegisterView from "../iam/components/register-view/register-view.component.vue"; // Importa tu componente de registro
 import AuthService from "../iam/service/auth_service.js";
 import ControlPanelPageComponent from "../public/pages/control-panel-page.component.vue";
 import SuppliesContentComponent from "../supply/components/supplies-content.component.vue";
@@ -20,6 +19,13 @@ const router = createRouter({
     routes: [
         {
             path: '/',
+            redirect: () => {
+                // Redirigir condicionalmente basado en el estado de autenticación
+                return AuthService.isAuthenticated() ? '/panel' : '/login';
+            }
+        },
+        {
+            path: '/login',
             component: AccessContentComponent,
             meta: {
                 guestOnly: true,
@@ -57,67 +63,46 @@ const router = createRouter({
                 requiresAuth: true
             }
         },
-
         {
             path: '/admins',
             name: 'AddAdmin',
             component: () => import('../profiles/admins/components/admin_management_page.vue'),
-
         },
-
         {
             path : '/admin/add',
             name : 'AdminAdd',
             component : () => import('../profiles/admins/components/admin_add_component.vue'),
         },
-
         {
             path: '/MyHotel',
             name: 'HotelDetail',
             component: () => import('../profiles/hotels/views/HotelDetail.vue'),
         },
-
         {
             path : '/CreateHotel',
             name : 'CreateHotel',
             component : () => import('../profiles/hotels/views/CreateHotel.vue'),
         },
-
         {
             path : '/Workers',
             name : 'WorkersPage',
             component : () => import('../profiles/workers/views/WorkerManagement.vue'),
         },
-
         {
-          path : '/Workers/Add',
-          name: 'Workers',
+            path : '/Workers/Add',
+            name: 'Workers',
             component: () => import('../profiles/workers/views/AddWorker.vue'),
         },
-
         {
             path : '/Providers',
             name : 'Providers',
             component : () => import('../profiles/providers/components/ProviderManagement.vue'),
         },
-
-        {
-            path : '/Provider/Add',
-            name : 'AddProviders',
-            component : () => import('../profiles/providers/components/ProviderAdd.vue'),
-        },
-
-        {
-            path: '/type-rooms',
-            name: 'TypeRooms',
-            component: () => import('../Rooms/views/TypeRoomsView.vue'),
-        },
-
         {
             path: '/rooms',
             name: 'rooms',
             component: () => import('../Rooms/views/RoomsManagement.vue'),
-        } ,
+        },
         {
             path: '/notifications',
             name: 'Notifications',
@@ -128,7 +113,7 @@ const router = createRouter({
             }
         },
         {
-            path: '/notifications/add',
+            path: '/add-notification',
             name: 'AddNotification',
             component: AddNotificationView,
             meta: {
@@ -149,7 +134,7 @@ router.beforeEach(async (to, from, next) => {
     // Verificar autenticación para rutas protegidas
     if (to.meta.requiresAuth) {
         if (!AuthService.isAuthenticated()) {
-            next({ path: '/', query: { redirect: to.fullPath } });
+            next({ path: '/login', query: { redirect: to.fullPath } });
             return;
         }
 
