@@ -4,7 +4,7 @@ import { jwtDecode } from "jwt-decode";
 
 export default class ProviderService {
     constructor() {
-        this.baseUrl = 'https://localhost:44390';
+        this.baseUrl = 'https://localhost:7138';
         this.api = axios.create({
             baseURL: this.baseUrl,
             headers: {
