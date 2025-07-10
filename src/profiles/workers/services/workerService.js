@@ -4,7 +4,7 @@ import Worker from '../model/worker.js';
 
 export default class WorkerService {
     constructor() {
-        this.baseUrl = 'https://localhost:44390';
+        this.baseUrl = 'https://localhost:7138';
         this.api = axios.create({
             baseURL: this.baseUrl,
             headers: {
