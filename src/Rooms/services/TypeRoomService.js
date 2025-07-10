@@ -44,6 +44,23 @@ axiosInstance.interceptors.response.use(
     }
 );
 
+/**
+ * TypeRoomService is a utility module for managing "type of room" entities
+ * through a RESTful API. It uses a pre-configured Axios instance with interceptors
+ * for authentication and error handling.
+ * 
+ * Main functionalities include:
+ * - Fetching all room types
+ * - Fetching a specific room type by ID
+ * - Creating, updating, and deleting room types
+ * 
+ * Authentication is handled via Bearer token (retrieved from AuthService),
+ * which is automatically attached to every request.
+ * 
+ * All responses are parsed and returned as instances of the `TypeRoom` model,
+ * when applicable.
+ */
+
 const TypeRoomService = {
     /**
      * Obtiene todos los tipos de habitaciones

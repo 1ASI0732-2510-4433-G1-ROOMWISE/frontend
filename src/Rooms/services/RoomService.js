@@ -1,6 +1,21 @@
 // RoomService.js
 const API_BASE_URL = 'https://localhost:7138/api'; // Ajusta según tu configuración
 
+/**
+ * RoomService provides a set of static methods to interact with the Room-related endpoints
+ * of the backend API. This service is responsible for handling room management operations,
+ * including:
+ * 
+ * - Fetching all rooms for a specific hotel
+ * - Creating, updating, and deleting room records
+ * - Fetching detailed information for a specific room
+ * - Mapping room state values from backend to frontend-friendly labels
+ * 
+ * Authentication is handled using JWT tokens stored in `localStorage` or `sessionStorage`,
+ * and automatically included in the request headers.
+ *
+ * This service uses the native Fetch API for HTTP requests.
+ */
 class RoomService {
     // Método para obtener el token de autenticación
     static getAuthToken() {
