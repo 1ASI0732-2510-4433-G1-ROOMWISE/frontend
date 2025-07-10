@@ -4,106 +4,220 @@
     <div v-if="isLoading" class="loading-container">
       <div class="spinner"></div>
     </div>
+
     <div v-else class="content">
       <div class="header-container">
         <div class="header">
-          <h1>Providers</h1>
+          <h1>Gestión de Proveedores</h1>
           <div class="actions">
-            <button @click="addProvider" class="add-button-text">
-              <i class="fas fa-plus"></i> Add Provider
+            <button @click="showAddModal = true" class="add-button">
+              Agregar Proveedor
+            </button>
+            <button @click="showAddSupplyModal = true" class="add-supply-button">
+              Agregar Suministro
+            </button>
+            <button @click="showSupplyRequestModal = true" class="add-request-button">
+              Crear Solicitud
             </button>
           </div>
         </div>
-
-        <!-- Search and filter section -->
-        <div class="search-filter">
-          <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search providers..."
-                class="search-input"
-                @input="filterProviders"
-            />
-          </div>
-          <div class="filter-container">
-            <select v-model="statusFilter" class="filter-select" @change="filterProviders">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-        </div>
       </div>
 
-      <div v-if="filteredProviders.length === 0 && !searchQuery && statusFilter === 'all'" class="empty-state">
-        <p>There are no providers records yet</p>
-        <button @click="addProvider" class="add-provider-btn">
-          <i class="fas fa-plus-circle"></i> Add Your First Provider
+      <div v-if="!providers.length" class="empty-state">
+        <p>No hay proveedores registrados aún</p>
+        <button @click="showAddModal = true" class="add-provider-btn">
+          <i class="fas fa-plus-circle"></i> Agregar Primer Proveedor
         </button>
       </div>
-      <div v-else-if="filteredProviders.length === 0" class="empty-state">
-        <p>No providers match your search criteria</p>
-        <button @click="resetFilters" class="reset-filter-btn">
-          <i class="fas fa-undo"></i> Reset Filters
-        </button>
-      </div>
+
       <div v-else class="table-container">
         <table class="provider-table">
           <thead>
           <tr>
             <th>ID</th>
-            <th>Name</th>
-            <th>Address</th>
+            <th>Nombre</th>
+            <th>Dirección</th>
             <th>Email</th>
-            <th>Phone</th>
-            <th>Status</th>
+            <th>Teléfono</th>
+            <th>Suministros</th>
+            <th>Estado</th>
           </tr>
           </thead>
           <tbody>
-          <tr v-for="provider in filteredProviders" :key="provider.id" class="provider-row">
+          <tr v-for="provider in providers" :key="provider.id" class="provider-row">
             <td>{{ provider.id || 'N/A' }}</td>
             <td>{{ provider.name || 'N/A' }}</td>
             <td>{{ provider.address || 'N/A' }}</td>
             <td>{{ provider.email || 'N/A' }}</td>
             <td>{{ formatPhone(provider.phone) || 'N/A' }}</td>
             <td>
-              <span class="status-badge" :class="provider.state === 'active' ? 'active' : 'inactive'">
-                {{ provider.state || 'N/A' }}
-              </span>
+              <div class="supplies-list">
+                <span v-if="provider.supplies && provider.supplies.length > 0"
+                      v-for="supply in provider.supplies"
+                      :key="supply.id"
+                      class="supply-tag">
+                  {{ supply.name }}
+                  <span class="supply-details">(Stock: {{ supply.stock }}, ${{ supply.price }})</span>
+                </span>
+                <span v-else class="no-supplies">Sin suministros</span>
+              </div>
             </td>
-
+            <td>
+                <span class="status-badge" :class="provider.state === 'active' ? 'active' : 'inactive'">
+                  {{ provider.state || 'N/A' }}
+                </span>
+            </td>
           </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop">
-      <div class="modal-content">
+    <!-- Add Provider Modal -->
+    <div v-if="showAddModal" class="modal-backdrop" @click="closeModal">
+      <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>Confirm Delete</h3>
-          <button @click="showDeleteModal = false" class="close-btn">
+          <h3>Agregar Proveedor</h3>
+          <button @click="closeModal" class="close-btn">
             <i class="fas fa-times"></i>
           </button>
         </div>
         <div class="modal-body">
-          <p>Are you sure you want to delete provider <strong>{{ providerToDelete?.name }}</strong>?</p>
-          <p class="warning-text">This action cannot be undone.</p>
+          <form @submit.prevent="addProvider">
+            <div class="form-group">
+              <label>Nombre *</label>
+              <input v-model="newProvider.name" type="text" required class="form-input" placeholder="Nombre del proveedor">
+            </div>
+            <div class="form-group">
+              <label>Dirección</label>
+              <input v-model="newProvider.address" type="text" class="form-input" placeholder="Dirección completa">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input v-model="newProvider.email" type="email" class="form-input" placeholder="ejemplo@correo.com">
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input v-model="newProvider.phone" type="number" class="form-input" placeholder="Ej: 1234567890">
+            </div>
+
+            <div class="form-group">
+              <label>Estado</label>
+              <select v-model="newProvider.state" class="form-select">
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+              </select>
+            </div>
+          </form>
         </div>
         <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="cancel-btn">
-            Cancel
+          <button @click="closeModal" class="cancel-btn">Cancelar</button>
+          <button @click="addProvider" class="confirm-btn" :disabled="!newProvider.name || isAdding">
+            <span v-if="isAdding">
+              <i class="fas fa-spinner fa-spin"></i> Agregando...
+            </span>
+            <span v-else>Agregar</span>
           </button>
-          <button @click="deleteProvider" class="confirm-delete-btn" :disabled="isDeleting">
-            <span v-if="isDeleting">
-              <i class="fas fa-spinner fa-spin"></i> Deleting...
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Supply Modal -->
+    <div v-if="showAddSupplyModal" class="modal-backdrop" @click="closeAddSupplyModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Agregar Suministro</h3>
+          <button @click="closeAddSupplyModal" class="close-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="addSupply">
+            <div class="form-group">
+              <label>Proveedor *</label>
+              <select v-model="newSupply.providerId" required class="form-select">
+                <option value="">Seleccionar proveedor</option>
+                <option v-for="provider in availableProviders" :key="provider.id" :value="provider.id">
+                  {{ provider.name }} - {{ provider.email }}
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nombre del Suministro *</label>
+              <input v-model="newSupply.name" type="text" required class="form-input" placeholder="Ej: Alimentos, Bebidas, Limpieza">
+            </div>
+            <div class="form-group">
+              <label>Precio</label>
+              <input v-model="newSupply.price" type="number" step="0.01" class="form-input" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Stock</label>
+              <input v-model="newSupply.stock" type="number" class="form-input" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Estado</label>
+              <select v-model="newSupply.state" class="form-select">
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeAddSupplyModal" class="cancel-btn">Cancelar</button>
+          <button @click="addSupply" class="confirm-btn" :disabled="!newSupply.name || !newSupply.providerId || isAddingSupply">
+            <span v-if="isAddingSupply">
+              <i class="fas fa-spinner fa-spin"></i> Agregando...
             </span>
-            <span v-else>
-              <i class="fas fa-trash"></i> Delete
+            <span v-else>Agregar Suministro</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supply Request Modal -->
+    <div v-if="showSupplyRequestModal" class="modal-backdrop" @click="closeSupplyRequestModal">
+      <div class="modal-content large-modal" @click.stop>
+        <div class="modal-header">
+          <h3>Crear Solicitud de Suministro</h3>
+          <button @click="closeSupplyRequestModal" class="close-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="createSupplyRequest">
+            <div class="form-group">
+              <label>Suministro *</label>
+              <select v-model="newSupplyRequest.supplyId" required class="form-select">
+                <option value="">Seleccionar suministro</option>
+                <option v-for="supply in availableSupplies" :key="supply.id" :value="supply.id">
+                  {{ supply.name }} - ${{ supply.price }} (Stock: {{ supply.stock }})
+                </option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Cantidad *</label>
+                <input v-model="newSupplyRequest.count" type="number" required min="1" class="form-input" placeholder="Cantidad solicitada">
+              </div>
+              <div class="form-group">
+                <label>Monto Total</label>
+                <input v-model="calculatedAmount" type="number" step="0.01" class="form-input" readonly placeholder="Se calcula automáticamente">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Notas adicionales</label>
+              <textarea v-model="newSupplyRequest.notes" class="form-textarea" rows="3" placeholder="Comentarios o especificaciones adicionales"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeSupplyRequestModal" class="cancel-btn">Cancelar</button>
+          <button @click="createSupplyRequest" class="confirm-btn" :disabled="!newSupplyRequest.supplyId || !newSupplyRequest.count || isCreatingRequest">
+            <span v-if="isCreatingRequest">
+              <i class="fas fa-spinner fa-spin"></i> Creando...
             </span>
+            <span v-else>Crear Solicitud</span>
           </button>
         </div>
       </div>
@@ -123,245 +237,361 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import ProviderService from '../../providers/services/ProviderService.js';
+import { ref, reactive, onMounted, computed } from 'vue';
 
 export default {
   name: 'ProviderManagement',
   setup() {
-    const router = useRouter();
-    const providerService = new ProviderService();
     const providers = ref([]);
-    const filteredProviders = ref([]);
+    const availableProviders = ref([]);
+    const paymentOwner = ref(null);
+    const availableSupplies = ref([]);
     const isLoading = ref(true);
-    const hotelId = ref(null);
-    const role = ref(null);
-    const searchQuery = ref('');
-    const statusFilter = ref('all');
-    const showDeleteModal = ref(false);
-    const providerToDelete = ref(null);
-    const isDeleting = ref(false);
+    const showAddModal = ref(false);
+    const showAddSupplyModal = ref(false);
+    const showSupplyRequestModal = ref(false);
+    const isAdding = ref(false);
+    const isAddingSupply = ref(false);
+    const isCreatingRequest = ref(false);
 
-    // Toast notification state
+    const newProvider = reactive({
+      name: '',
+      address: '',
+      email: '',
+      phone: '',
+      supply: '',
+      state: 'active'
+    });
+
+    const newSupply = reactive({
+      providerId: '',
+      name: '',
+      price: '',
+      stock: '',
+      state: 'active'
+    });
+
+    const newSupplyRequest = reactive({
+      supplyId: '',
+      count: '',
+      notes: ''
+    });
+
     const toast = reactive({
       show: false,
       message: '',
       type: 'success',
-      icon: 'fa-check-circle',
-      timeout: null
+      icon: 'fa-check-circle'
     });
 
-    // Filter providers based on search query and status
-    const filterProviders = () => {
-      if (!providers.value.length) return;
-
-      let filtered = [...providers.value];
-
-      // Filter by search query
-      if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        filtered = filtered.filter(provider => {
-          return provider.name?.toLowerCase().includes(query) ||
-              provider.address?.toLowerCase().includes(query) ||
-              provider.email?.toLowerCase().includes(query) ||
-              provider.phone?.toString().includes(query) ||
-              provider.id?.toString().includes(query);
-        });
+    const calculatedAmount = computed(() => {
+      const selectedSupply = availableSupplies.value.find(s => s.id == newSupplyRequest.supplyId);
+      if (selectedSupply && newSupplyRequest.count) {
+        return (parseFloat(selectedSupply.price) * parseInt(newSupplyRequest.count)).toFixed(2);
       }
+      return '0.00';
+    });
 
-      // Filter by status
-      if (statusFilter.value !== 'all') {
-        filtered = filtered.filter(provider => provider.state === statusFilter.value);
-      }
+    const getTokenData = () => {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Token no encontrado');
 
-      filteredProviders.value = filtered;
-    };
-
-    const resetFilters = () => {
-      searchQuery.value = '';
-      statusFilter.value = 'all';
-      filterProviders();
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        token,
+        hotelId: payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/locality"],
+        ownerId: payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid"]
+      };
     };
 
     const formatPhone = (phone) => {
       if (!phone) return '';
       const phoneStr = phone.toString();
-      if (phoneStr.length === 10) {
-        return `(${phoneStr.slice(0, 3)}) ${phoneStr.slice(3, 6)}-${phoneStr.slice(6)}`;
-      }
-      return phoneStr;
-    };
-
-    const getRole = async () => {
-      try {
-        return await providerService.getRoleFromToken();
-      } catch (error) {
-        console.error('Error getting role:', error);
-        return null;
-      }
-    };
-
-    const getHotelId = async () => {
-      try {
-        return await providerService.getHotelIdFromToken();
-      } catch (error) {
-        console.error('Error getting hotel ID:', error);
-        return null;
-      }
-    };
-
-    const loadHotelId = async () => {
-      const tokenHotelId = await getHotelId();
-      console.log('Hotel ID:', tokenHotelId);
-
-      if (tokenHotelId) {
-        hotelId.value = tokenHotelId;
-        fetchProviders();
-      } else {
-        isLoading.value = false;
-        showToast('Hotel ID not found. Please log in again.', 'error', 'fa-exclamation-circle');
-      }
+      return phoneStr.length === 10
+          ? `(${phoneStr.slice(0, 3)}) ${phoneStr.slice(3, 6)}-${phoneStr.slice(6)}`
+          : phoneStr;
     };
 
     const fetchProviders = async () => {
-      if (!hotelId.value) return;
-
       try {
-        isLoading.value = true;
-        console.log('Fetching providers for hotelId:', hotelId.value);
-        const fetchedProviders = await providerService.getProvidersByHotelId(hotelId.value);
-        console.log('Fetched providers:', fetchedProviders);
-        providers.value = fetchedProviders;
-        filterProviders(); // Initialize filtered providers
-        isLoading.value = false;
+        const { token, hotelId } = getTokenData();
+
+        const response = await fetch(`https://localhost:7138/api/provider/get-all/${hotelId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const providersData = await response.json();
+
+          // Fetch supplies for each provider
+          for (let provider of providersData) {
+            try {
+              const suppliesResponse = await fetch(`https://localhost:7138/api/supply/provider/${provider.id}`, {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              provider.supplies = suppliesResponse.ok ? await suppliesResponse.json() : [];
+            } catch (error) {
+              console.error(`Error fetching supplies for provider ${provider.id}:`, error);
+              provider.supplies = [];
+            }
+          }
+
+          providers.value = providersData;
+        } else {
+          throw new Error('Error al obtener proveedores');
+        }
       } catch (error) {
-        isLoading.value = false;
         console.error('Error fetching providers:', error);
-        showToast(`Failed to load providers: ${error.message}`, 'error', 'fa-exclamation-circle');
+        showToast('Error al cargar proveedores', 'error', 'fa-exclamation-circle');
       }
     };
 
-    const addProvider = () => {
-      router.push('/provider/add');
+    const fetchAvailableProviders = async () => {
+      try {
+        const { token } = getTokenData();
+        const providerPromises = [];
+
+        for (let i = 1; i <= 3; i++) {
+          providerPromises.push(
+              fetch(`https://localhost:7138/api/provider/${i}`, {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                }
+              }).then(response => response.ok ? response.json() : null)
+                  .catch(() => null)
+          );
+        }
+
+        const results = await Promise.all(providerPromises);
+        availableProviders.value = results.filter(provider => provider !== null);
+      } catch (error) {
+        console.error('Error fetching available providers:', error);
+      }
     };
 
-    const editProvider = (provider) => {
-      router.push(`/provider/edit/${provider.id}`);
+    const fetchPaymentOwner = async () => {
+      try {
+        const { token, ownerId } = getTokenData();
+
+        // URL CORRECTA según el Swagger
+        const response = await fetch(`https://localhost:7138/get-payments-owner-id?ownerId=${ownerId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // La respuesta es un array, tomar el primer elemento
+          paymentOwner.value = data[0] || null;
+        } else if (response.status === 404) {
+          console.log('Payment owner not found - this might be expected for new users');
+          paymentOwner.value = null;
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Error fetching payment owner:', error);
+        paymentOwner.value = null;
+      }
     };
 
-    const confirmDelete = (provider) => {
-      providerToDelete.value = provider;
-      showDeleteModal.value = true;
+    const fetchAvailableSupplies = async () => {
+      try {
+        const { token } = getTokenData();
+
+        const response = await fetch('https://localhost:7138/api/supply/get-all-supply', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          availableSupplies.value = await response.json();
+        }
+      } catch (error) {
+        console.error('Error fetching supplies:', error);
+      }
     };
 
-    const deleteProvider = async () => {
-      if (!providerToDelete.value) return;
+    const addProvider = async () => {
+      if (!newProvider.name) return;
 
       try {
-        isDeleting.value = true;
-        // Simulate API call for now - you'd implement this method in your service
-        // await providerService.deleteProvider(providerToDelete.value.id);
+        isAdding.value = true;
+        const { token } = getTokenData();
 
-        // For demonstration, let's just wait 1 second
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await fetch('https://localhost:7138/api/provider/create-provider', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: newProvider.name,
+            address: newProvider.address,
+            email: newProvider.email,
+            phone: parseInt(newProvider.phone) || 0,
+            supply: newProvider.supply,
+            state: newProvider.state
+          })
+        });
 
-        // Remove from local array
-        providers.value = providers.value.filter(p => p.id !== providerToDelete.value.id);
-
-        // Close modal
-        showDeleteModal.value = false;
-        providerToDelete.value = null;
-
-        // Show success message
-        showToast('Provider deleted successfully', 'success', 'fa-check-circle');
-
-        // Filter the list again
-        filterProviders();
+        if (response.ok) {
+          await fetchProviders();
+          closeModal();
+          showToast('Proveedor agregado exitosamente', 'success', 'fa-check-circle');
+        } else {
+          throw new Error('Error al crear proveedor');
+        }
       } catch (error) {
-        console.error('Error deleting provider:', error);
-        showToast(`Failed to delete provider: ${error.message}`, 'error', 'fa-exclamation-circle');
+        console.error('Error adding provider:', error);
+        showToast(`Error al agregar proveedor: ${error.message}`, 'error', 'fa-exclamation-circle');
       } finally {
-        isDeleting.value = false;
+        isAdding.value = false;
       }
+    };
+
+    const addSupply = async () => {
+      if (!newSupply.name || !newSupply.providerId) return;
+
+      try {
+        isAddingSupply.value = true;
+        const { token } = getTokenData();
+
+        const response = await fetch('https://localhost:7138/api/supply/create-supply', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            providersId: parseInt(newSupply.providerId),
+            name: newSupply.name,
+            price: parseFloat(newSupply.price) || 0,
+            stock: parseInt(newSupply.stock) || 0,
+            state: newSupply.state
+          })
+        });
+
+        if (response.ok) {
+          await Promise.all([fetchProviders(), fetchAvailableSupplies()]);
+          closeAddSupplyModal();
+          showToast('Suministro agregado exitosamente', 'success', 'fa-check-circle');
+        } else {
+          throw new Error('Error al crear suministro');
+        }
+      } catch (error) {
+        console.error('Error adding supply:', error);
+        showToast(`Error al agregar suministro: ${error.message}`, 'error', 'fa-exclamation-circle');
+      } finally {
+        isAddingSupply.value = false;
+      }
+    };
+
+    const createSupplyRequest = async () => {
+      if (!newSupplyRequest.supplyId || !newSupplyRequest.count || !paymentOwner.value) return;
+
+      try {
+        isCreatingRequest.value = true;
+        const { token } = getTokenData();
+
+        const response = await fetch('https://localhost:7138/api/supplies-request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            paymentsOwnersId: paymentOwner.value.id,
+            suppliesId: parseInt(newSupplyRequest.supplyId),
+            count: parseInt(newSupplyRequest.count),
+            amount: parseFloat(calculatedAmount.value)
+          })
+        });
+
+        if (response.ok) {
+          closeSupplyRequestModal();
+          showToast('Solicitud de suministro creada exitosamente', 'success', 'fa-check-circle');
+        } else {
+          throw new Error('Error al crear solicitud');
+        }
+      } catch (error) {
+        console.error('Error creating supply request:', error);
+        showToast(`Error al crear solicitud: ${error.message}`, 'error', 'fa-exclamation-circle');
+      } finally {
+        isCreatingRequest.value = false;
+      }
+    };
+
+    const closeModal = () => {
+      showAddModal.value = false;
+      Object.assign(newProvider, { name: '', address: '', email: '', phone: '', supply: '', state: 'active' });
+    };
+
+    const closeAddSupplyModal = () => {
+      showAddSupplyModal.value = false;
+      Object.assign(newSupply, { providerId: '', name: '', price: '', stock: '', state: 'active' });
+    };
+
+    const closeSupplyRequestModal = () => {
+      showSupplyRequestModal.value = false;
+      Object.assign(newSupplyRequest, { supplyId: '', count: '', notes: '' });
     };
 
     const showToast = (message, type = 'success', icon = 'fa-check-circle') => {
-      // Clear any existing timeout
-      if (toast.timeout) {
-        clearTimeout(toast.timeout);
-      }
-
-      // Set toast properties
-      toast.show = true;
-      toast.message = message;
-      toast.type = type;
-      toast.icon = icon;
-
-      // Auto-hide after 3 seconds
-      toast.timeout = setTimeout(() => {
-        closeToast();
-      }, 3000);
+      Object.assign(toast, { show: true, message, type, icon });
+      setTimeout(() => toast.show = false, 3000);
     };
 
-    const closeToast = () => {
-      toast.show = false;
-      if (toast.timeout) {
-        clearTimeout(toast.timeout);
-        toast.timeout = null;
-      }
-    };
-
-    // Event handler for provider-added
-    const handleProviderAdded = () => {
-      fetchProviders();
-      showToast('Provider added successfully', 'success', 'fa-check-circle');
-    };
-
-    // Event handler for provider-updated
-    const handleProviderUpdated = () => {
-      fetchProviders();
-      showToast('Provider updated successfully', 'success', 'fa-check-circle');
-    };
+    const closeToast = () => toast.show = false;
 
     onMounted(async () => {
-      // Add event listeners
-      document.addEventListener('provider-added', handleProviderAdded);
-      document.addEventListener('provider-updated', handleProviderUpdated);
-
-      role.value = await getRole();
-      await loadHotelId();
-    });
-
-    onUnmounted(() => {
-      // Clean up event listeners
-      document.removeEventListener('provider-added', handleProviderAdded);
-      document.removeEventListener('provider-updated', handleProviderUpdated);
-
-      // Clear any active timeout
-      if (toast.timeout) {
-        clearTimeout(toast.timeout);
+      try {
+        isLoading.value = true;
+        await Promise.all([
+          fetchProviders(),
+          fetchAvailableProviders(),
+          fetchPaymentOwner(),
+          fetchAvailableSupplies()
+        ]);
+      } finally {
+        isLoading.value = false;
       }
     });
 
     return {
       providers,
-      filteredProviders,
+      availableProviders,
+      availableSupplies,
       isLoading,
-      role,
-      searchQuery,
-      statusFilter,
-      showDeleteModal,
-      providerToDelete,
-      isDeleting,
+      showAddModal,
+      showAddSupplyModal,
+      showSupplyRequestModal,
+      isAdding,
+      isAddingSupply,
+      isCreatingRequest,
+      newProvider,
+      newSupply,
+      newSupplyRequest,
+      calculatedAmount,
       toast,
-      addProvider,
-      editProvider,
-      confirmDelete,
-      deleteProvider,
-      filterProviders,
-      resetFilters,
       formatPhone,
+      addProvider,
+      addSupply,
+      createSupplyRequest,
+      closeModal,
+      closeAddSupplyModal,
+      closeSupplyRequestModal,
       closeToast
     };
   }
@@ -425,67 +655,52 @@ export default {
 
 .actions {
   display: flex;
-  align-items: center;
   gap: 10px;
 }
 
-.add-button-text {
-  background-color: #474C74;
+.add-button {
+  background-color: #52A8E8;
   color: white;
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
-.add-button-text:hover {
-  background-color: #3A3E5C;
+.add-button:hover {
+  background-color: #4A96D3;
 }
 
-.search-filter {
-  display: flex;
-  margin-top: 16px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.search-container {
-  position: relative;
-  flex-grow: 1;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 12px;
-  color: #666;
-}
-
-.search-input {
-  width: 100%;
-  padding: 10px 10px 10px 40px;
-  border: 1px solid #ddd;
+.add-supply-button {
+  background-color: #B565A7;
+  color: white;
+  border: none;
   border-radius: 8px;
+  padding: 8px 16px;
   font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
-.filter-container {
-  min-width: 150px;
+.add-supply-button:hover {
+  background-color: #A055A0;
 }
 
-.filter-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
+.add-request-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
   border-radius: 8px;
+  padding: 8px 16px;
   font-size: 14px;
-  background-color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.add-request-button:hover {
+  background-color: #218838;
 }
 
 .empty-state {
@@ -500,7 +715,7 @@ export default {
   margin-top: 40px;
 }
 
-.add-provider-btn, .reset-filter-btn {
+.add-provider-btn {
   background-color: #474C74;
   color: white;
   border: none;
@@ -514,7 +729,7 @@ export default {
   gap: 8px;
 }
 
-.add-provider-btn:hover, .reset-filter-btn:hover {
+.add-provider-btn:hover {
   background-color: #3A3E5C;
 }
 
@@ -550,6 +765,33 @@ export default {
   background-color: #f5f7fa;
 }
 
+.supplies-list {
+  max-width: 200px;
+}
+
+.supply-tag {
+  display: inline-block;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin: 2px;
+}
+
+.supply-details {
+  display: block;
+  font-size: 10px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.no-supplies {
+  color: #999;
+  font-style: italic;
+  font-size: 12px;
+}
+
 .status-badge {
   display: inline-block;
   padding: 4px 8px;
@@ -569,42 +811,6 @@ export default {
   color: #dc3545;
 }
 
-.actions-cell {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-start;
-}
-
-.action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.edit-btn {
-  color: #007bff;
-}
-
-.edit-btn:hover {
-  background-color: #e6f2ff;
-}
-
-.delete-btn {
-  color: #dc3545;
-}
-
-.delete-btn:hover {
-  background-color: #fff0f0;
-}
-
-/* Modal styles */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -625,6 +831,10 @@ export default {
   max-width: 500px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   overflow: hidden;
+}
+
+.large-modal {
+  max-width: 600px;
 }
 
 .modal-header {
@@ -652,9 +862,42 @@ export default {
   padding: 20px;
 }
 
-.warning-text {
-  color: #dc3545;
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #474C74;
+}
+
+.form-textarea {
+  resize: vertical;
 }
 
 .modal-footer {
@@ -679,8 +922,8 @@ export default {
   background-color: #e9ecef;
 }
 
-.confirm-delete-btn {
-  background-color: #dc3545;
+.confirm-btn {
+  background-color: #474C74;
   color: white;
   border: none;
   border-radius: 4px;
@@ -692,12 +935,12 @@ export default {
   gap: 8px;
 }
 
-.confirm-delete-btn:hover {
-  background-color: #c82333;
+.confirm-btn:hover {
+  background-color: #3A3E5C;
 }
 
-.confirm-delete-btn:disabled {
-  background-color: #e9989f;
+.confirm-btn:disabled {
+  background-color: #ccc;
   cursor: not-allowed;
 }
 
@@ -715,7 +958,6 @@ export default {
   padding: 12px 16px;
   z-index: 1100;
   min-width: 300px;
-  max-width: 400px;
 }
 
 .toast.success {
@@ -724,10 +966,6 @@ export default {
 
 .toast.error {
   border-left: 4px solid #dc3545;
-}
-
-.toast.info {
-  border-left: 4px solid #17a2b8;
 }
 
 .toast-content {
@@ -748,10 +986,6 @@ export default {
   color: #dc3545;
 }
 
-.toast.info i {
-  color: #17a2b8;
-}
-
 .toast-close {
   background: none;
   border: none;
@@ -760,30 +994,16 @@ export default {
   color: #666;
 }
 
-/* Mobile responsive adjustments */
+/* Mobile responsive */
 @media screen and (max-width: 768px) {
   .header {
     flex-direction: column;
-    align-items: flex-start;
     gap: 12px;
   }
 
   .actions {
     width: 100%;
-    justify-content: flex-start;
-  }
-
-  .add-button-text {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .search-filter {
-    flex-direction: column;
-  }
-
-  .filter-container {
-    width: 100%;
+    justify-content: space-between;
   }
 
   .provider-table th:nth-child(3),
