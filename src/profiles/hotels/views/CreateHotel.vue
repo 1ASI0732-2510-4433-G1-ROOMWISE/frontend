@@ -115,7 +115,7 @@ export default {
         console.log('Enviando datos de hotel:', hotelData);
 
         // Realizar la petición POST al API
-        const response = await fetch('https://localhost:44390/api/hotel/create', {
+        const response = await fetch('https://localhost:7138/api/hotel/create', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
