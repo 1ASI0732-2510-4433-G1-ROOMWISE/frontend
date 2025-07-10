@@ -1,10 +1,8 @@
-// services/TypeRoomService.js
 import axios from 'axios';
 import TypeRoom from '../models/TypeRoom.js';
-import AuthService from '../../iam/service/auth_service.js'; // Importamos el AuthService existente
+import AuthService from '../../iam/service/auth_service.js';
 
-// Determinar la URL base según el entorno
-const API_BASE_URL = 'https://localhost:44390/api';
+const API_BASE_URL = 'https://localhost:7138/api';
 
 // Crear una instancia personalizada de axios
 const axiosInstance = axios.create({
@@ -12,7 +10,6 @@ const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    // Importante para CORS
     withCredentials: false
 });
 
@@ -29,17 +26,13 @@ axiosInstance.interceptors.request.use(config => {
 axiosInstance.interceptors.response.use(
     response => response,
     error => {
-        // Registrar todos los errores para depuración
         console.error('API Request failed:', error);
 
-        // Formatear el mensaje de error para ser más amigable
         if (error.code === 'ERR_NETWORK') {
             error.friendlyMessage = 'No se pudo conectar al servidor. Verifique su conexión a internet y que el servidor esté funcionando.';
         } else if (error.response) {
             if (error.response.status === 401) {
                 error.friendlyMessage = 'Su sesión ha expirado o no tiene permisos para realizar esta acción. Por favor, inicie sesión nuevamente.';
-                // Opcionalmente redireccionar al login si la sesión expiró
-                // window.location.href = '/login';
             } else {
                 error.friendlyMessage = `Error del servidor: ${error.response.status} - ${error.response.data?.message || 'Error desconocido'}`;
             }
@@ -47,7 +40,6 @@ axiosInstance.interceptors.response.use(
             error.friendlyMessage = 'Error desconocido al procesar la solicitud.';
         }
 
-        // Re-lanzar el error para que pueda ser capturado por el componente
         throw error;
     }
 );
@@ -85,7 +77,7 @@ const TypeRoomService = {
     /**
      * Crea un nuevo tipo de habitación
      * @param {TypeRoom} typeRoom - Objeto TypeRoom a crear
-     * @returns {Promise<boolean>} - Resultado de la operación
+     * @returns {Promise<Object>} - Tipo de habitación creado
      */
     async createTypeRoom(typeRoom) {
         try {
@@ -102,16 +94,17 @@ const TypeRoomService = {
 
     /**
      * Actualiza un tipo de habitación existente
+     * @param {number} id - ID del tipo de habitación
      * @param {TypeRoom} typeRoom - Objeto TypeRoom a actualizar
-     * @returns {Promise<boolean>} - Resultado de la operación
+     * @returns {Promise<Object>} - Tipo de habitación actualizado
      */
-    async updateTypeRoom(typeRoom) {
+    async updateTypeRoom(id, typeRoom) {
         try {
             const data = typeRoom instanceof TypeRoom ? typeRoom.toJson() : typeRoom;
-            const response = await axiosInstance.put(`/types-rooms/update-type-room/${typeRoom.id}`, data);
+            const response = await axiosInstance.put(`/types-rooms/update-type-room/${id}`, data);
             return response.data;
         } catch (error) {
-            console.error(`Error al actualizar tipo de habitación con ID ${typeRoom.id}:`, error);
+            console.error(`Error al actualizar tipo de habitación con ID ${id}:`, error);
             throw error;
         }
     },
