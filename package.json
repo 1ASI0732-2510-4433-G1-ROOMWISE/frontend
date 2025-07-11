@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@syncfusion/ej2-vue-navigations": "^25.1.42",
+    "@vueuse/core": "^13.5.0",
     "axios": "^1.9.0",
     "chart.js": "^4.4.2",
     "jwt-decode": "^4.0.0",
