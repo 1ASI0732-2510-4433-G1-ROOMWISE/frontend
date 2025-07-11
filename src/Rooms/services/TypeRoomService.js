@@ -4,7 +4,7 @@ import AuthService from '../../iam/service/auth_service.js';
 
 const API_BASE_URL = 'https://localhost:7138/api';
 
-// Crear una instancia personalizada de axios
+// Esto es para crear una instancia personalizada de axios
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -43,6 +43,23 @@ axiosInstance.interceptors.response.use(
         throw error;
     }
 );
+
+/**
+ * TypeRoomService is a utility module for managing "type of room" entities
+ * through a RESTful API. It uses a pre-configured Axios instance with interceptors
+ * for authentication and error handling.
+ * 
+ * Main functionalities include:
+ * - Fetching all room types
+ * - Fetching a specific room type by ID
+ * - Creating, updating, and deleting room types
+ * 
+ * Authentication is handled via Bearer token (retrieved from AuthService),
+ * which is automatically attached to every request.
+ * 
+ * All responses are parsed and returned as instances of the `TypeRoom` model,
+ * when applicable.
+ */
 
 const TypeRoomService = {
     /**

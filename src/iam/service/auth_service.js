@@ -10,6 +10,20 @@ const axiosInstance = axios.create({
     },
 });
 
+/**
+ * AuthService handles all authentication-related operations in the application:
+ * 
+ * - User login and token management (storage, decoding, expiration handling)
+ * - Silent re-authentication and token refreshing
+ * - Role-based sign-up (Owner, Admin, Worker)
+ * - Decoding and extracting user-related information from JWT
+ * - Axios interceptor configuration to attach bearer tokens to requests
+ * 
+ * The service uses `localStorage` to persist JWT tokens and `jwt-decode` for
+ * decoding and validating token claims.
+ * 
+ * All API calls are made using a configured Axios instance with a base URL.
+ */
 class AuthService {
     static axiosInstance = axiosInstance;
 

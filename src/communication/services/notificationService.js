@@ -1,5 +1,21 @@
 import axios from 'axios';
 
+/**
+ * NotificationService handles all HTTP requests related to notifications.
+ * It uses Axios to communicate with the backend API and includes the authentication
+ * token (if available) in each request via an interceptor.
+ *
+ * Core functionalities:
+ * - getNotificationTypes(): Retrieves all available types of notifications.
+ * - createNotification(notification): Sends a new notification to the backend.
+ * - getAllNotifications(hotelId): Fetches all notifications for a specific hotel.
+ * - markAsRead(notificationId): Marks a specific notification as read.
+ * - deleteNotification(notificationId): Deletes a specific notification.
+ *
+ * Usage:
+ * const notificationService = new NotificationService();
+ * notificationService.getAllNotifications(hotelId);
+ */
 export default class NotificationService {
     constructor() {
         this.baseUrl = 'https://localhost:7138';

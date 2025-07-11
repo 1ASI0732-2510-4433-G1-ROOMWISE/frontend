@@ -2,6 +2,25 @@ import axios from 'axios';
 import { jwtDecode } from "jwt-decode";
 import Worker from '../model/worker.js';
 
+/**
+ * WorkerService manages all operations related to worker users.
+ * It handles HTTP requests to the backend API for creating and retrieving workers,
+ * and also provides robust token handling (validation, expiration, and claim extraction).
+ *
+ * Features:
+ * - Automatically adds Bearer token to requests via Axios interceptor.
+ * - Validates JWT expiration before sending requests.
+ * - Handles worker creation and retrieval by hotel ID.
+ * - Extracts useful information from JWT token: hotelId, userId, role, and token claims.
+ *
+ * Main Methods:
+ * - createWorker(workerData): Registers a new worker via API.
+ * - getWorkersByHotelId(hotelId): Fetches all workers for a specific hotel.
+ * - getHotelIdFromToken(): Extracts the hotel ID from the JWT.
+ * - getRoleFromToken(): Extracts the user role from the JWT.
+ * - getUserIdFromToken(): Extracts the user ID from the JWT.
+ * - getTokenDebugInfo(): Returns detailed debug info about the current token.
+ */
 export default class WorkerService {
     constructor() {
         this.baseUrl = 'https://localhost:7138';
